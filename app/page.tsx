@@ -8,5 +8,5 @@ export default async function Home(){
  const supabase=await supabaseServer();
  const {data:{user},error}=await supabase.auth.getUser();
  if(error||!user)redirect("/login");
- return <><div className="session-bar"><span>Signed in: {user.email}</span><form action={signOut}><button type="submit">Sign out</button></form></div><Dashboard/></>;
+ return <Dashboard email={user.email} signOutAction={signOut}/>;
 }
