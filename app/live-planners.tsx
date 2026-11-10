@@ -166,7 +166,7 @@ export function BusinessPlanner({userId}:{userId:string}){
   setBusy(false);
  };
  return <section className="planner business-console hq-live">
-  <div className="console-top"><div><div className="eyebrow">BUSINESS CONTROL CENTER</div><h1>My Businesses</h1></div><button className="console-primary" type="button" onClick={()=>setOpen(true)}>+ Add business</button></div>
+  <div className="console-top"><div><div className="eyebrow">BUSINESS CONTROL CENTER</div><h1>Businesses</h1></div><button className="console-primary" type="button" onClick={()=>setOpen(true)}>+ Add business</button></div>
   {h.error&&<div className="hq-error" role="alert">{h.error}<button onClick={()=>void h.refresh()}>Retry</button></div>}
   {h.loading&&<p className="hq-business-muted" role="status">Loading businesses…</p>}
   {!h.loading&&!h.businesses.length&&<p className="hq-business-muted">No businesses yet</p>}
