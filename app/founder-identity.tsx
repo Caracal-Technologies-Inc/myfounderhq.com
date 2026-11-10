@@ -16,14 +16,14 @@ export default function FounderIdentity({userId}:{userId:string}){
  const [busy,setBusy]=useState(false);
  const [notice,setNotice]=useState("");
  const [error,setError]=useState("");
- const load=useCallback(async()=>{
+ const load=useCallback(async(preserveEdits=false)=>{
   setLoading(true);setError("");
   const [profile,docs]=await Promise.all([
    db.from("hq_founder_profiles").select("full_name,date_of_birth").eq("user_id",userId).maybeSingle(),
    db.from("hq_identity_documents").select("id,document_type,original_name,storage_path,created_at").eq("user_id",userId).order("created_at",{ascending:false})
   ]);
   if(profile.error||docs.error){setError(profile.error?.message||docs.error?.message||"Unable to load your profile.");}
-  else{setFullName(profile.data?.full_name||"");setBirthDate(profile.data?.date_of_birth||"");setDocuments((docs.data||[]) as Document[]);}
+  else{if(!preserveEdits){setFullName(profile.data?.full_name||"");setBirthDate(profile.data?.date_of_birth||"");}setDocuments((docs.data||[]) as Document[]);}
   setLoading(false);
  },[db,userId]);
  useEffect(()=>{void load()},[load]);
@@ -47,7 +47,7 @@ export default function FounderIdentity({userId}:{userId:string}){
   if(uploadError){setError(uploadError.message);setBusy(false);return;}
   const {error:metaError}=await db.from("hq_identity_documents").insert({user_id:userId,document_type:docType,original_name:file.name,storage_path:path,mime_type:file.type,size_bytes:file.size});
   if(metaError){await db.storage.from("hq-identity-documents").remove([path]);setError(metaError.message);}
-  else{setNotice("Identity document uploaded securely.");setFile(null);setFileInputKey(n=>n+1);await load();}
+  else{setNotice("Identity document uploaded securely.");setFile(null);setFileInputKey(n=>n+1);await load(true);}
   setBusy(false);
  }
  async function openDocument(doc:Document){
@@ -63,7 +63,7 @@ export default function FounderIdentity({userId}:{userId:string}){
   if(storageError){setError(storageError.message);setBusy(false);return;}
   const {error:metaError}=await db.from("hq_identity_documents").delete().eq("id",doc.id).eq("user_id",userId);
   if(metaError)setError("File removed, but record cleanup failed: "+metaError.message);
-  else{setNotice("Document removed.");await load();}
+  else{setNotice("Document removed.");await load(true);}
   setBusy(false);
  }
  return <div className="card settings-section founder-identity">
