@@ -4,7 +4,7 @@ import {createBrowserClient} from "@supabase/ssr";
 
 type Department={id:number;name:string;sort_order:number};
 type Template={id:number;department_id:number;name:string;sort_order:number};
-type Instance={id:string;template_id:number;business_id:string|null;status:string};
+type Instance={id:string;template_id:number;business_id:string|null;status:string;is_live:boolean};
 type Task={id:string;instance_id:string;event_type:string;title:string;detail:string;status:string;created_at:string};
 type Connector={id:string;instance_id:string;provider:string;state:string;notes:string};
 export default function AIEmployeeDirectory({userId}:{userId:string}){
@@ -24,12 +24,14 @@ export default function AIEmployeeDirectory({userId}:{userId:string}){
  const [modalError,setModalError]=useState("");
  const [listTab,setListTab]=useState<"tasks"|"connectors">("tasks");
  const selectedInstance=selected?instances.find(i=>i.template_id===selected.id&&i.business_id===null):undefined;
+ const liveTemplates=templates.filter(t=>instances.some(i=>i.template_id===t.id&&i.business_id===null&&i.is_live));
+ const directoryTemplates=templates.filter(t=>!liveTemplates.some(l=>l.id===t.id));
  const load=useCallback(async()=>{
   setLoading(true);setError("");
   const [d,t,i]=await Promise.all([
    db.from("hq_ai_departments").select("id,name,sort_order").order("sort_order"),
    db.from("hq_ai_employee_templates").select("id,department_id,name,sort_order").order("id"),
-   db.from("hq_ai_employee_instances").select("id,template_id,business_id,status").eq("user_id",userId).is("business_id",null)
+   db.from("hq_ai_employee_instances").select("id,template_id,business_id,status,is_live").eq("user_id",userId).is("business_id",null)
   ]);
   const failed=[d,t,i].find(x=>x.error);
   if(failed?.error)setError(failed.error.message);
@@ -79,14 +81,27 @@ export default function AIEmployeeDirectory({userId}:{userId:string}){
   setSaving(false);
  }
  return <section className="ai-simple">
-  <div className="console-top"><div><div className="eyebrow">AI WORKFORCE</div><h1>My Employees</h1></div></div>
+  <div className="console-top"><div><div className="eyebrow">AI WORKFORCE</div><h1>Employees</h1></div></div>
   {error&&<div className="hq-error" role="alert">{error}<button type="button" onClick={()=>void load()}>Retry</button></div>}
   {loading&&<p role="status">Loading employees…</p>}
+  <section className="ai-live-section" aria-label="Live employees">
+   <h2>Live Employees</h2>
+   <div className="ai-simple-list">
+    {liveTemplates.map(t=><button type="button" className="ai-live-row" key={t.id} onClick={()=>openEmployee(t)}>
+     <strong>{t.name}</strong><span className="ai-live-department">{departments.find(d=>d.id===t.department_id)?.name}</span><span className="ai-chevron">›</span>
+    </button>)}
+    {!loading&&liveTemplates.length===0&&<p className="ai-empty">No live employees yet.</p>}
+   </div>
+  </section>
+  <h2 className="ai-directory-subheading">Employee Directory</h2>
   <div className="ai-simple-groups">
-   {departments.map(d=><section className="ai-simple-dept" key={d.id}>
-    <h2>{d.name}</h2>
-    <div className="ai-simple-list">{templates.filter(t=>t.department_id===d.id).map(t=><button type="button" key={t.id} onClick={()=>openEmployee(t)}>{t.name}<span>›</span></button>)}</div>
-   </section>)}
+   {departments.map(d=>{
+    const members=directoryTemplates.filter(t=>t.department_id===d.id);
+    return members.length>0?<section className="ai-simple-dept" key={d.id}>
+     <h2>{d.name}</h2>
+     <div className="ai-simple-list">{members.map(t=><button type="button" key={t.id} onClick={()=>openEmployee(t)}>{t.name}<span>›</span></button>)}</div>
+    </section>:null;
+   })}
   </div>
   {selected&&<div className="console-overlay" onMouseDown={e=>{if(e.target===e.currentTarget)setSelected(null)}}>
    <div className="console-dialog ai-simple-modal" role="dialog" aria-modal="true" aria-label={selected.name}>
