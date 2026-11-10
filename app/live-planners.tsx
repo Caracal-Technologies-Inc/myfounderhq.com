@@ -51,7 +51,6 @@ export function BusinessPlanner({userId}:{userId:string}){
  const h=useHQ(userId);
  const [open,setOpen]=useState(false);
  const [name,setName]=useState("");
- const [description,setDescription]=useState("");
  const [busy,setBusy]=useState(false);
  const saveBusiness=async(event:React.FormEvent<HTMLFormElement>)=>{
   event.preventDefault();
@@ -59,10 +58,10 @@ export function BusinessPlanner({userId}:{userId:string}){
   if(!businessName)return;
   setBusy(true);
   const saved=await h.mutate(()=>h.db.from("hq_businesses").insert({
-   user_id:userId,name:businessName,description:description.trim(),status:"Planning"
+   user_id:userId,name:businessName,status:"Planning"
   }));
   setBusy(false);
-  if(saved){setOpen(false);setName("");setDescription("");}
+  if(saved){setOpen(false);setName("");}
  };
  return <section className="planner business-console hq-live">
   <div className="console-top">
@@ -75,10 +74,9 @@ export function BusinessPlanner({userId}:{userId:string}){
     <div className="console-dialog-head"><h2>Add business</h2><button type="button" aria-label="Close" onClick={()=>setOpen(false)}>×</button></div>
     <form className="console-form" onSubmit={saveBusiness}>
      <label>Business name<input required maxLength={100} value={name} onChange={e=>setName(e.target.value)}/></label>
-     <label>Description<input maxLength={180} value={description} onChange={e=>setDescription(e.target.value)}/></label>
      <div className="console-form-actions">
       <button type="button" className="console-outline" onClick={()=>setOpen(false)}>Cancel</button>
-      <button type="submit" className="console-primary" disabled={busy}>{busy?"Saving…":"Save to Supabase"}</button>
+      <button type="submit" className="console-primary" disabled={busy}>{busy?"Adding…":"Add business"}</button>
      </div>
     </form>
    </div>
