@@ -49,64 +49,40 @@ function useHQ(userId:string){
 const pipelineStatuses=["Planned","In progress","Review","Done"] as const;
 export function BusinessPlanner({userId}:{userId:string}){
  const h=useHQ(userId);
- const [view,setView]=useState<"board"|"setup">("board");
- const [entry,setEntry]=useState<Business|null|undefined>(undefined);
- const [form,setForm]=useState(newBusiness);
- const [task,setTask]=useState<BusinessTask|null|undefined>(undefined);
- const [taskBusiness,setTaskBusiness]=useState("");
- const [title,setTitle]=useState("");
- const [notes,setNotes]=useState("");
- const [status,setStatus]=useState<BusinessTask["status"]>("Planned");
+ const [open,setOpen]=useState(false);
+ const [name,setName]=useState("");
+ const [description,setDescription]=useState("");
  const [busy,setBusy]=useState(false);
- const openBusiness=(b:Business|null)=>{setForm(b?{name:b.name,description:b.description,status:b.status}:newBusiness);setEntry(b);};
- const openTask=(businessId:string,t:BusinessTask|null,stage:BusinessTask["status"]="Planned")=>{
-  setTaskBusiness(businessId);setTask(t);setTitle(t?.title||"");setNotes(t?.notes||"");setStatus(t?.status||stage);
+ const saveBusiness=async(event:React.FormEvent<HTMLFormElement>)=>{
+  event.preventDefault();
+  const businessName=name.trim();
+  if(!businessName)return;
+  setBusy(true);
+  const saved=await h.mutate(()=>h.db.from("hq_businesses").insert({
+   user_id:userId,name:businessName,description:description.trim(),status:"Planning"
+  }));
+  setBusy(false);
+  if(saved){setOpen(false);setName("");setDescription("");}
  };
- const saveBusiness=async(e:React.FormEvent)=>{e.preventDefault();if(!form.name.trim())return;setBusy(true);
-  const values={name:form.name.trim(),description:form.description.trim(),status:form.status};
-  const ok=await h.mutate(()=>entry?h.db.from("hq_businesses").update(values).eq("id",entry.id).eq("user_id",userId):h.db.from("hq_businesses").insert({...values,user_id:userId}));
-  setBusy(false);if(ok)setEntry(undefined);
- };
- const saveTask=async(e:React.FormEvent)=>{e.preventDefault();if(!title.trim())return;setBusy(true);
-  const values={business_id:taskBusiness,title:title.trim(),notes:notes.trim(),status};
-  const ok=await h.mutate(()=>task?h.db.from("hq_business_tasks").update(values).eq("id",task.id).eq("user_id",userId):h.db.from("hq_business_tasks").insert({...values,user_id:userId}));
-  setBusy(false);if(ok)setTask(undefined);
- };
- const changeStage=async(t:BusinessTask,next:BusinessTask["status"])=>{
-  await h.mutate(()=>h.db.from("hq_business_tasks").update({status:next}).eq("id",t.id).eq("user_id",userId));
- };
- const removeBusiness=async()=>{if(!entry||!window.confirm("Permanently delete this business and all its tasks?"))return;setBusy(true);const ok=await h.mutate(()=>h.db.from("hq_businesses").delete().eq("id",entry.id).eq("user_id",userId));setBusy(false);if(ok)setEntry(undefined);};
- const removeTask=async()=>{if(!task||!window.confirm("Delete this task?"))return;setBusy(true);const ok=await h.mutate(()=>h.db.from("hq_business_tasks").delete().eq("id",task.id).eq("user_id",userId));setBusy(false);if(ok)setTask(undefined);};
  return <section className="planner business-console hq-live">
-  <div className="console-top"><div><div className="eyebrow">BUSINESS CONTROL CENTER</div><h1>My Businesses</h1></div><button className="console-primary" type="button" onClick={()=>{setView("setup");openBusiness(null)}}>+ Add business</button></div>
-  <div className="console-toolbar"><div className="console-switch"><button type="button" aria-pressed={view==="board"} className={view==="board"?"selected":""} onClick={()=>setView("board")}>▤ Operations view</button><button type="button" aria-pressed={view==="setup"} className={view==="setup"?"selected":""} onClick={()=>setView("setup")}>⚙ Business setup</button></div><span className="console-count">{h.businesses.length} businesses · {h.businessTasks.length} tasks · Supabase</span></div>
-  {h.error&&<div className="hq-error" role="alert">{h.error}<button onClick={()=>void h.refresh()}>Retry</button></div>}
-  {h.loading&&<p role="status">Syncing with Supabase…</p>}
-  {view==="board"?<>
-   <div className="console-hint"><strong>PORTFOLIO OPERATIONS</strong><span>Business names and controls remain pinned · Scroll horizontally through work stages</span></div>
-   <div className="business-board-scroll" tabIndex={0} aria-label="Scrollable business operations board">
-    <div className="business-board">
-     <div className="business-board-head business-board-name-head">BUSINESS</div>
-     <div className="business-board-head business-board-control-head">CONTROLS</div>
-     {pipelineStatuses.map(s=><div className="business-board-head business-board-stage-head" key={s}>{s}</div>)}
-     {h.businesses.map(b=><React.Fragment key={b.id}>
-      <div className="business-board-name"><strong title={b.name}>{b.name}</strong></div>
-      <div className="business-board-actions"><span className="business-board-status">{b.status}</span><div className="business-board-action-buttons"><button type="button" onClick={()=>openTask(b.id,null)}>+ Task</button><button type="button" onClick={()=>{setView("setup");openBusiness(b)}}>⚙ Setup</button></div></div>
-      {pipelineStatuses.map(stage=><div className="business-board-lane" key={stage}>
-       {h.businessTasks.filter(t=>t.business_id===b.id&&t.status===stage).map(t=><div className="business-board-task" key={t.id}>
-        <button type="button" className="business-board-task-main" onClick={()=>openTask(b.id,t)}><strong>{t.title}</strong>{t.notes&&<span>{t.notes}</span>}</button>
-        <div className="business-board-task-actions"><button type="button" title="Edit task" onClick={()=>openTask(b.id,t)}>Edit</button>
-        {stage!=="Done"&&<button type="button" onClick={()=>void changeStage(t,pipelineStatuses[pipelineStatuses.indexOf(stage)+1])} title={"Move to next stage"}>Advance →</button>}</div>
-       </div>)}
-       <button type="button" className="business-board-add" onClick={()=>openTask(b.id,null,stage)}>+ Add task</button>
-      </div>)}
-     </React.Fragment>)}
-    </div>
+  <div className="console-top">
+   <div><div className="eyebrow">BUSINESS CONTROL CENTER</div><h1>My Businesses</h1></div>
+   <button type="button" className="console-primary" onClick={()=>setOpen(true)}>+ Add business</button>
+  </div>
+  {h.error&&<div className="hq-error" role="alert">{h.error}<button type="button" onClick={()=>void h.refresh()}>Retry</button></div>}
+  {open&&<div className="console-overlay">
+   <div className="console-dialog" role="dialog" aria-modal="true" aria-label="Add business">
+    <div className="console-dialog-head"><h2>Add business</h2><button type="button" aria-label="Close" onClick={()=>setOpen(false)}>×</button></div>
+    <form className="console-form" onSubmit={saveBusiness}>
+     <label>Business name<input required maxLength={100} value={name} onChange={e=>setName(e.target.value)}/></label>
+     <label>Description<input maxLength={180} value={description} onChange={e=>setDescription(e.target.value)}/></label>
+     <div className="console-form-actions">
+      <button type="button" className="console-outline" onClick={()=>setOpen(false)}>Cancel</button>
+      <button type="submit" className="console-primary" disabled={busy}>{busy?"Saving…":"Save to Supabase"}</button>
+     </div>
+    </form>
    </div>
-   {!h.loading&&!h.businesses.length&&<div className="console-empty">No businesses yet. Use <strong>+ Add business</strong> to begin.</div>}
-  </>:<div className="console-setup"><div className="console-setup-head"><div><h2>Business registry</h2><p>Configure businesses and direct their work.</p></div><button className="console-outline" type="button" onClick={()=>openBusiness(null)}>+ New business</button></div><div className="console-directory">{h.businesses.map(b=><div className="console-profile" key={b.id}><div className="console-profile-info"><strong>{b.name}</strong><span>{b.description||"No description"}</span><small>{b.status} · {h.businessTasks.filter(t=>t.business_id===b.id).length} tasks</small></div><button className="console-outline" type="button" onClick={()=>openTask(b.id,null)}>+ Task</button><button className="console-outline" type="button" onClick={()=>openBusiness(b)}>Configure</button></div>)}</div></div>}
-  {entry!==undefined&&<div className="console-overlay"><div className="console-dialog" role="dialog" aria-modal="true" aria-label="Business editor"><div className="console-dialog-head"><h2>{entry?"Configure business":"Add business"}</h2><button type="button" onClick={()=>setEntry(undefined)} aria-label="Close">×</button></div><form className="console-form" onSubmit={saveBusiness}><label>Business name<input required maxLength={100} value={form.name} onChange={e=>setForm(v=>({...v,name:e.target.value}))}/></label><label>Description<input maxLength={180} value={form.description} onChange={e=>setForm(v=>({...v,description:e.target.value}))}/></label><label>Status<select value={form.status} onChange={e=>setForm(v=>({...v,status:e.target.value as Business["status"]}))}>{["Planning","Active","Paused","Launched"].map(x=><option key={x}>{x}</option>)}</select></label><div className="console-form-actions">{entry&&<button className="console-danger" type="button" disabled={busy} onClick={()=>void removeBusiness()}>Delete business</button>}<button className="console-outline" type="button" onClick={()=>setEntry(undefined)}>Cancel</button><button className="console-primary" type="submit" disabled={busy}>Save to Supabase</button></div></form></div></div>}
-  {task!==undefined&&<div className="console-overlay"><div className="console-dialog" role="dialog" aria-modal="true" aria-label="Task editor"><div className="console-dialog-head"><h2>{task?"Edit task":"Add task"}</h2><button type="button" onClick={()=>setTask(undefined)} aria-label="Close">×</button></div><form className="console-form" onSubmit={saveTask}><label>Task title<input required maxLength={140} value={title} onChange={e=>setTitle(e.target.value)}/></label><label>Work stage<select value={status} onChange={e=>setStatus(e.target.value as BusinessTask["status"])}>{pipelineStatuses.map(s=><option key={s}>{s}</option>)}</select></label><label>Instructions<textarea rows={4} value={notes} onChange={e=>setNotes(e.target.value)}/></label><div className="console-form-actions">{task&&<button className="console-danger" type="button" disabled={busy} onClick={()=>void removeTask()}>Delete task</button>}<button className="console-outline" type="button" onClick={()=>setTask(undefined)}>Cancel</button><button className="console-primary" type="submit" disabled={busy}>Save to Supabase</button></div></form></div></div>}
+  </div>}
  </section>;
 }
 
