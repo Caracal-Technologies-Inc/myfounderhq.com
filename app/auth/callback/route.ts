@@ -19,6 +19,7 @@ export async function GET(request:NextRequest){
   const {error}=await supabase.auth.verifyOtp({token_hash:tokenHash,type});
   if(!error)return NextResponse.redirect(new URL(type==="recovery"?"/reset-password":"/email-confirmed",url.origin));
  }
+ if(next==="/email-confirmed"&&!code&&!tokenHash){return NextResponse.redirect(new URL("/email-confirmed",url.origin));}
  const failed=new URL(next==="/email-confirmed"?"/email-confirmed":"/login",url.origin);
  if(next==="/email-confirmed")failed.searchParams.set("error","Email confirmation link expired or could not be verified.");
  else{failed.searchParams.set("type","error");failed.searchParams.set("message","Confirmation link expired or could not be verified.");}
