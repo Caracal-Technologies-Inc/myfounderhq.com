@@ -86,7 +86,7 @@ export default function AccountSettings({userId,initialEmail,signOutAction}:{use
    }else if(mode==="email"){
     setProgress("Requesting email change…");
     const {error}=await db.auth.updateUser({email:value.trim()},{emailRedirectTo:window.location.origin+"/email-confirmed"});
-    if(error){fail(error.message,"email",emailRef);return;}
+    if(error){const isRateLimited=error.status===429||error.code==="over_email_send_rate_limit"||/email rate limit exceeded|too many requests/i.test(error.message);fail(isRateLimited?"Too many email change requests recently. Please try again later.":error.message,"email",emailRef);return;}
     chooseAfterSuccess();
     setFeedback({type:"success",field:"email",message:"Email-change email requested. Open the confirmation link to see whether Supabase accepted the change. The email displayed here updates only after Supabase confirms it."});
    }else{
