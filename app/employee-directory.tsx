@@ -7,13 +7,11 @@ type Template={id:number;department_id:number;name:string;sort_order:number};
 type Instance={id:string;template_id:number;business_id:string|null;status:string};
 type Task={id:string;instance_id:string;event_type:string;title:string;detail:string;status:string;created_at:string};
 type Connector={id:string;instance_id:string;provider:string;state:string;notes:string};
-const tabs=["Departments 1–3","Departments 4–6","Departments 7–9","Departments 10–12"];
 export default function AIEmployeeDirectory({userId}:{userId:string}){
  const db=useMemo(()=>createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!),[]);
  const [departments,setDepartments]=useState<Department[]>([]);
  const [templates,setTemplates]=useState<Template[]>([]);
  const [instances,setInstances]=useState<Instance[]>([]);
- const [tab,setTab]=useState(0);
  const [selected,setSelected]=useState<Template|null>(null);
  const [tasks,setTasks]=useState<Task[]>([]);
  const [connectors,setConnectors]=useState<Connector[]>([]);
@@ -80,16 +78,12 @@ export default function AIEmployeeDirectory({userId}:{userId:string}){
   if(error)setModalError(error.message);else await loadDetails(selectedInstance.id);
   setSaving(false);
  }
- const displayedDepartments=departments.filter((_,i)=>Math.floor(i/3)===tab);
  return <section className="ai-simple">
   <div className="console-top"><div><div className="eyebrow">AI WORKFORCE</div><h1>My Employees</h1></div></div>
-  <div className="ai-four-tabs" role="tablist" aria-label="Employee departments">
-   {tabs.map((label,i)=><button type="button" role="tab" key={label} aria-selected={tab===i} className={tab===i?"selected":""} onClick={()=>setTab(i)}>{label}</button>)}
-  </div>
   {error&&<div className="hq-error" role="alert">{error}<button type="button" onClick={()=>void load()}>Retry</button></div>}
   {loading&&<p role="status">Loading employees…</p>}
   <div className="ai-simple-groups">
-   {displayedDepartments.map(d=><section className="ai-simple-dept" key={d.id}>
+   {departments.map(d=><section className="ai-simple-dept" key={d.id}>
     <h2>{d.name}</h2>
     <div className="ai-simple-list">{templates.filter(t=>t.department_id===d.id).map(t=><button type="button" key={t.id} onClick={()=>openEmployee(t)}>{t.name}<span>›</span></button>)}</div>
    </section>)}
