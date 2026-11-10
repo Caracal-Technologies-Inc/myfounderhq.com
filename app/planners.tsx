@@ -6,52 +6,90 @@ function dayStart(d:Date){return new Date(d.getFullYear(),d.getMonth(),d.getDate
 function offset(d:Date,n:number){const x=new Date(d);x.setDate(x.getDate()+n);return x;}
 function label(d:Date){return d.toLocaleDateString("en-CA",{month:"short",day:"numeric"});}
 function monthLabel(a:Date,b:Date){return a.toLocaleDateString("en-CA",{month:"long",year:"numeric"})+(a.getMonth()!==b.getMonth()?" – "+b.toLocaleDateString("en-CA",{month:"long"}):"");}
-const ventures=[
- {name:"GO™",short:"GO",tasks:[{name:"Product planning",start:1,length:7,type:0},{name:"Development",start:5,length:13,type:1},{name:"Testing & review",start:15,length:7,type:2}]},
- {name:"ULTIMATE FAN™",short:"UF",tasks:[{name:"Experience design",start:3,length:9,type:0},{name:"Merchandise setup",start:10,length:12,type:1},{name:"Launch preparation",start:21,length:6,type:2}]},
- {name:"EZWIPE™",short:"EZ",tasks:[{name:"Product specification",start:0,length:7,type:0},{name:"Supplier research",start:6,length:11,type:1},{name:"Prototype review",start:16,length:8,type:2}]},
- {name:"SPEEDY GUIDES™",short:"SG",tasks:[{name:"Editorial planning",start:2,length:9,type:0},{name:"Content production",start:9,length:13,type:1},{name:"Publishing review",start:19,length:7,type:2}]}
+type Business={id:string;name:string;description:string;status:"Planning"|"Active"|"Paused"|"Launched"};
+type BusinessTask={id:string;businessId:string;title:string;start:string;end:string;status:"Planned"|"In progress"|"Review"|"Done";notes:string};
+const BUSINESS_KEY="myfounderhq.business-console.v1";
+const initialBusinesses:Business[]=[
+ {id:"go",name:"GO™",description:"Voice navigation and planning",status:"Planning"},
+ {id:"ultimate-fan",name:"ULTIMATE FAN™",description:"Fan experiences and merchandise",status:"Planning"},
+ {id:"ezwipe",name:"EZWIPE™",description:"Physical product development",status:"Planning"},
+ {id:"speedy-guides",name:"SPEEDY GUIDES™",description:"Publishing and media",status:"Planning"}
 ];
-const employees=[
- {name:"AI Employee #001",role:"Web Application Developer",initials:"WD",notes:"Current candidate",tasks:[{day:0,title:"Development workspace",detail:"Role setup",type:0},{day:2,title:"Application development",detail:"Example assignment",type:1},{day:4,title:"Review & verification",detail:"Example assignment",type:2}]},
- {name:"Future Employee #002",role:"Graphic Designer",initials:"GD",notes:"Illustrative role",tasks:[{day:1,title:"Visual concepts",detail:"Example assignment",type:0},{day:3,title:"Asset production",detail:"Example assignment",type:1}]},
- {name:"Future Employee #003",role:"Marketing Manager",initials:"MM",notes:"Illustrative role",tasks:[{day:1,title:"Campaign planning",detail:"Example assignment",type:0},{day:4,title:"Campaign review",detail:"Example assignment",type:2}]}
-];
-const types=["Planning","Execution","Review"];
-export function BusinessPlanner(){
+const emptyBusiness={name:"",description:"",status:"Planning" as Business["status"]};
+function dayNumber(value:string){return Math.floor(Date.parse(value+"T12:00:00Z")/86400000);}
+export function BusinessPlanner({accountKey=""}:{accountKey?:string}){
+ const [view,setView]=useState<"timeline"|"setup">("timeline");
+ const [businesses,setBusinesses]=useState<Business[]>(initialBusinesses);
+ const [tasks,setTasks]=useState<BusinessTask[]>([]);
+ const [loaded,setLoaded]=useState(false);
  const [shift,setShift]=useState(0);
- const [selection,setSelection]=useState<string|null>(null);
+ const [businessDialog,setBusinessDialog]=useState(false);
+ const [businessEditing,setBusinessEditing]=useState<string|null>(null);
+ const [businessForm,setBusinessForm]=useState(emptyBusiness);
+ const [taskDialog,setTaskDialog]=useState(false);
+ const [taskEditing,setTaskEditing]=useState<string|null>(null);
+ const [taskBusiness,setTaskBusiness]=useState("");
+ const [taskTitle,setTaskTitle]=useState("");
+ const [taskStart,setTaskStart]=useState("");
+ const [taskEnd,setTaskEnd]=useState("");
+ const [taskStatus,setTaskStatus]=useState<BusinessTask["status"]>("Planned");
+ const [taskNotes,setTaskNotes]=useState("");
+ const [error,setError]=useState("");
+ const storageKey=BUSINESS_KEY+":"+accountKey;
+ useEffect(()=>{
+  try{const raw=window.localStorage.getItem(storageKey);if(raw){
+   const parsed=JSON.parse(raw);
+   setBusinesses(Array.isArray(parsed.businesses)?parsed.businesses.filter((x:Business)=>x&&typeof x.id==="string"&&typeof x.name==="string"):initialBusinesses);
+   setTasks(Array.isArray(parsed.tasks)?parsed.tasks.filter((x:BusinessTask)=>x&&typeof x.id==="string"&&typeof x.businessId==="string"):[]);
+  }else{setBusinesses(initialBusinesses);setTasks([]);}
+  }catch{setBusinesses(initialBusinesses);setTasks([]);}
+  setLoaded(true);
+ },[storageKey]);
+ useEffect(()=>{if(loaded){try{window.localStorage.setItem(storageKey,JSON.stringify({businesses,tasks}));}catch{/* Browser storage unavailable */}}},[storageKey,loaded,businesses,tasks]);
  const today=dayStart(new Date());
- const start=offset(today,-today.getDay()+1+shift*28);
- const dates=Array.from({length:28},(_,i)=>offset(start,i));
- const taskInfo=selection?.split("|");
- return <section className="planner">
-  <div className="planner-head"><div><div className="eyebrow">Portfolio Timeline</div><h1>My Businesses</h1><p>Track overlapping work across your business portfolio.</p></div>
-   <div className="planner-controls"><button type="button" onClick={()=>setShift(s=>s-1)} aria-label="Previous four weeks">‹</button><button type="button" onClick={()=>setShift(0)}>Today</button><button type="button" onClick={()=>setShift(s=>s+1)} aria-label="Next four weeks">›</button></div>
+ const monday=offset(today,-((today.getDay()+6)%7)+shift*28);
+ const dates=Array.from({length:28},(_,i)=>offset(monday,i));
+ const firstDay=dayNumber(toLocalISO(dates[0]));
+ const lastDay=firstDay+27;
+ const openBusiness=(entry?:Business)=>{setBusinessEditing(entry?.id||null);setBusinessForm(entry?{name:entry.name,description:entry.description,status:entry.status}:emptyBusiness);setBusinessDialog(true);};
+ const saveBusiness=(e:React.FormEvent<HTMLFormElement>)=>{e.preventDefault();const name=businessForm.name.trim();if(!name)return;const record={...businessForm,name,description:businessForm.description.trim()};if(businessEditing){setBusinesses(v=>v.map(x=>x.id===businessEditing?{...x,...record}:x));}else{setBusinesses(v=>[...v,{...record,id:newId()}]);}setBusinessDialog(false);};
+ const openTask=(businessId:string,entry?:BusinessTask)=>{setError("");setTaskEditing(entry?.id||null);setTaskBusiness(businessId);setTaskTitle(entry?.title||"");setTaskStart(entry?.start||toLocalISO(today));setTaskEnd(entry?.end||toLocalISO(offset(today,3)));setTaskStatus(entry?.status||"Planned");setTaskNotes(entry?.notes||"");setTaskDialog(true);};
+ const saveTask=(e:React.FormEvent<HTMLFormElement>)=>{e.preventDefault();if(!taskTitle.trim()||!taskBusiness)return;if(dayNumber(taskEnd)<dayNumber(taskStart)){setError("End date must be on or after the start date.");return;}const record={businessId:taskBusiness,title:taskTitle.trim(),start:taskStart,end:taskEnd,status:taskStatus,notes:taskNotes.trim()};if(taskEditing){setTasks(v=>v.map(t=>t.id===taskEditing?{...t,...record}:t));}else{setTasks(v=>[...v,{id:newId(),...record}]);}setTaskDialog(false);};
+ const activeBusiness=businesses.find(x=>x.id===taskBusiness);
+ return <section className="planner business-console">
+  <div className="console-top"><div><div className="eyebrow">BUSINESS CONTROL CENTER</div><h1>My Businesses</h1></div><button className="console-primary" type="button" onClick={()=>{openBusiness();setView("setup");}}>+ Add business</button></div>
+  <div className="console-toolbar" role="toolbar" aria-label="Business workspace controls">
+   <div className="console-switch"><button type="button" aria-pressed={view==="timeline"} className={view==="timeline"?"selected":""} onClick={()=>setView("timeline")}>▤ Timeline view</button><button type="button" aria-pressed={view==="setup"} className={view==="setup"?"selected":""} onClick={()=>setView("setup")}>⚙ Business setup</button></div>
+   <span className="console-count">{businesses.length} businesses · {tasks.length} scheduled tasks</span>
+   {view==="timeline"&&<div className="planner-controls"><button type="button" onClick={()=>setShift(s=>s-1)} aria-label="Previous four weeks">‹</button><button type="button" onClick={()=>setShift(0)}>Today</button><button type="button" onClick={()=>setShift(s=>s+1)} aria-label="Next four weeks">›</button></div>}
   </div>
-  <div className="planner-summary"><span><strong>{ventures.length}</strong> Businesses</span><span><strong>{ventures.reduce((n,v)=>n+v.tasks.length,0)}</strong> Example tasks</span><span className="planner-example">Illustrative timeline — not live assignments</span></div>
-  <div className="planner-panel">
-   <div className="planner-titlebar"><strong>Business timeline</strong><span>{monthLabel(dates[0],dates[27])}</span></div>
-   <div className="gantt-scroll"><div className="gantt-inner">
-    <div className="gantt-label gantt-corner">BUSINESS / TASK</div>
-    <div className="gantt-days">{dates.map((d,i)=><div key={i} className={"gantt-day "+(d.getDay()===0||d.getDay()===6?"weekend ":"")+(d.toDateString()===today.toDateString()?"today":"")}><strong>{d.toLocaleDateString("en-CA",{weekday:"short"})}</strong><span>{d.getDate()}</span></div>)}</div>
-    {ventures.map((v,vi)=><div className="gantt-group" key={v.name}>
-     <div className="gantt-business"><span className="business-avatar">{v.short}</span><strong>{v.name}</strong><small>{v.tasks.length} example tasks</small></div>
-     {v.tasks.map((t,ti)=><div className="gantt-task-row" key={t.name}>
-      <div className="gantt-task-label">{t.name}</div>
-      <div className="gantt-track">
-       {dates.map((d,i)=><span key={i} className={"gantt-cell "+(d.getDay()===0||d.getDay()===6?"weekend ":"")+(d.toDateString()===today.toDateString()?"today":"")}/>)}
-       {Math.max(0,Math.min(28,t.start+t.length-shift*28)-Math.max(0,t.start-shift*28))>0&&<button type="button" className={"gantt-bar tone-"+t.type} style={{left:(Math.max(0,t.start-shift*28)/28*100)+"%",width:((Math.min(28,t.start+t.length-shift*28)-Math.max(0,t.start-shift*28))/28*100)+"%"}} onClick={()=>setSelection(v.name+"|"+t.name)} title={v.name+" — "+t.name}>{t.name}</button>}
-      </div>
-     </div>)}
-    </div>)}
-   </div></div>
-   <div className="planner-legend">{types.map((x,i)=><span key={x}><i className={"legend-dot tone-"+i}/>{x}</span>)}</div>
-  </div>
-  {taskInfo&&<div className="planner-selection" role="status"><strong>{taskInfo[0]}</strong><span>{taskInfo[1]} · Illustrative schedule</span><button type="button" onClick={()=>setSelection(null)} aria-label="Dismiss task details">×</button></div>}
-  <p className="planner-caption">This is a visual prototype. The displayed time bars are examples; no scheduling database is connected yet.</p>
+  {view==="timeline"?<>
+   <div className="console-hint"><strong>PORTFOLIO COMMAND GRID</strong><span>{monthLabel(dates[0],dates[27])} · Scroll horizontally across dates · Select + to schedule work</span></div>
+   <div className="business-scroll" tabIndex={0} aria-label="Scrollable portfolio Gantt schedule">
+    <div className="business-grid">
+     <div className="business-sticky-corner">BUSINESS / TASK</div>
+     <div className="business-dates">{dates.map((d,i)=><div className={"business-day "+(toLocalISO(d)===toLocalISO(today)?"is-today":"")} key={i}><span>{d.toLocaleDateString("en-CA",{weekday:"short"})}</span><strong>{d.getDate()}</strong></div>)}</div>
+     {businesses.map(b=><React.Fragment key={b.id}>
+      <div className="business-group-heading"><div className="business-heading-name"><span className="business-small-avatar">{b.name.slice(0,2).toUpperCase()}</span><strong>{b.name}</strong><span className="business-state">{b.status}</span></div><div className="business-heading-actions"><button type="button" onClick={()=>openTask(b.id)}>+ Task</button><button type="button" onClick={()=>{openBusiness(b);setView("setup");}} aria-label={"Configure "+b.name}>⚙</button></div></div>
+      <div className="business-group-track"><span>{tasks.filter(t=>t.businessId===b.id).length} assignments</span></div>
+      {(tasks.filter(t=>t.businessId===b.id).length?tasks.filter(t=>t.businessId===b.id).sort((a,b)=>a.start.localeCompare(b.start)):[]).map(t=>{
+       const left=Math.max(0,dayNumber(t.start)-firstDay);
+       const right=Math.min(28,dayNumber(t.end)-firstDay+1);
+       const visible=right>left;
+       return <React.Fragment key={t.id}><div className="business-task-name" title={t.title}>{t.title}</div><div className="business-task-track">{visible&&<button className={"business-task-bar state-"+t.status.toLowerCase().replaceAll(" ","-")} type="button" style={{left:(left*42)+"px",width:((right-left)*42-4)+"px"}} title={t.title+" · "+t.start+" to "+t.end} onClick={()=>openTask(b.id,t)}>{t.title}<span>{t.status}</span></button>}</div></React.Fragment>;
+      })}
+      {tasks.every(t=>t.businessId!==b.id)&&<><div className="business-task-name is-empty">No scheduled tasks</div><div className="business-task-track business-empty-track"><button type="button" onClick={()=>openTask(b.id)}>+ Schedule first task</button></div></>}
+     </React.Fragment>)}
+    </div>
+   </div>
+   {!businesses.length&&<div className="console-empty">No businesses yet. Use <strong>+ Add business</strong> to create one.</div>}
+  </>:<div className="console-setup"><div className="console-setup-head"><div><h2>Business registry</h2><p>Manage businesses and schedule their work from this control room.</p></div><button className="console-outline" onClick={()=>openBusiness()} type="button">+ New business</button></div><div className="console-directory">{businesses.map(b=><div className="console-profile" key={b.id}><span className="console-avatar">{b.name.slice(0,2).toUpperCase()}</span><div className="console-profile-info"><strong>{b.name}</strong><span>{b.description||"No description"}</span><small>{b.status} · {tasks.filter(t=>t.businessId===b.id).length} tasks</small></div><button type="button" className="console-outline" onClick={()=>openTask(b.id)}>+ Task</button><button className="console-outline" type="button" onClick={()=>openBusiness(b)}>Configure</button></div>)}{!businesses.length&&<p>No businesses configured.</p>}</div></div>}
+  {businessDialog&&<div className="console-overlay" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget)setBusinessDialog(false);}}><div className="console-dialog" role="dialog" aria-modal="true" aria-label={businessEditing?"Configure business":"Add business"}><div className="console-dialog-head"><h2>{businessEditing?"Configure business":"Add business"}</h2><button type="button" onClick={()=>setBusinessDialog(false)} aria-label="Close">×</button></div><form className="console-form" onSubmit={saveBusiness}><label>Business name<input required maxLength={100} value={businessForm.name} onChange={e=>setBusinessForm(v=>({...v,name:e.target.value}))} placeholder="e.g. GO™"/></label><label>Description<input maxLength={180} value={businessForm.description} onChange={e=>setBusinessForm(v=>({...v,description:e.target.value}))} placeholder="What does this business do?"/></label><label>Business status<select value={businessForm.status} onChange={e=>setBusinessForm(v=>({...v,status:e.target.value as Business["status"]}))}><option>Planning</option><option>Active</option><option>Paused</option><option>Launched</option></select></label><div className="console-form-actions">{businessEditing&&<button className="console-danger" type="button" onClick={()=>{if(window.confirm("Remove this business and all of its tasks?")){setBusinesses(v=>v.filter(x=>x.id!==businessEditing));setTasks(v=>v.filter(t=>t.businessId!==businessEditing));setBusinessDialog(false);}}}>Remove business</button>}<button className="console-outline" type="button" onClick={()=>setBusinessDialog(false)}>Cancel</button><button className="console-primary" type="submit">Save business</button></div></form></div></div>}
+  {taskDialog&&<div className="console-overlay" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget)setTaskDialog(false);}}><div className="console-dialog" role="dialog" aria-modal="true" aria-label={taskEditing?"Configure task":"Schedule task"}><div className="console-dialog-head"><h2>{taskEditing?"Configure task":"Schedule work"}</h2><button type="button" onClick={()=>setTaskDialog(false)} aria-label="Close">×</button></div><p className="console-context">{activeBusiness?.name||"Business"}</p><form className="console-form" onSubmit={saveTask}><label>Assignment<input required maxLength={140} value={taskTitle} onChange={e=>setTaskTitle(e.target.value)} placeholder="Work to be completed"/></label><div className="business-dates-form"><label>Start<input required type="date" value={taskStart} onChange={e=>setTaskStart(e.target.value)}/></label><label>End<input required type="date" value={taskEnd} onChange={e=>setTaskEnd(e.target.value)}/></label></div><label>Status<select value={taskStatus} onChange={e=>setTaskStatus(e.target.value as BusinessTask["status"])}><option>Planned</option><option>In progress</option><option>Review</option><option>Done</option></select></label><label>Instructions / notes<textarea rows={4} value={taskNotes} onChange={e=>setTaskNotes(e.target.value)} placeholder="Intended outcome and relevant details"/></label>{error&&<p role="alert" className="console-error">{error}</p>}<div className="console-form-actions">{taskEditing&&<button className="console-danger" type="button" onClick={()=>{if(window.confirm("Delete this task?")){setTasks(v=>v.filter(t=>t.id!==taskEditing));setTaskDialog(false);}}}>Delete task</button>}<button className="console-outline" type="button" onClick={()=>setTaskDialog(false)}>Cancel</button><button className="console-primary" type="submit">Save task</button></div></form></div></div>}
+  <p className="planner-caption">Local business control prototype: edits are saved in this browser only. No database synchronization or AI task execution yet.</p>
  </section>;
 }
+function toLocalISO(d:Date){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
 type Employee={id:string;name:string;role:string;department:string;status:"Candidate"|"Active"|"Paused";instructions:string};
 type Assignment={id:string;employeeId:string;date:string;title:string;details:string;status:"Queued"|"In progress"|"Review"|"Complete"};
 const KEY="myfounderhq.employee-console.v1";
