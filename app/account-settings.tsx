@@ -43,7 +43,7 @@ export default function AccountSettings({userId,initialEmail,signOutAction}:{use
    }
   };
   void refresh();
-  const {data:auth}=db.auth.onAuthStateChange(()=>{void refresh();});
+  const {data:auth}=db.auth.onAuthStateChange(()=>{window.setTimeout(()=>{if(active)void refresh();},0);});
   const onFocus=()=>{void refresh();};
   window.addEventListener("focus",onFocus);
   return()=>{active=false;auth.subscription.unsubscribe();window.removeEventListener("focus",onFocus);};
