@@ -18,7 +18,7 @@ export default function Dashboard({email,signOutAction}:{email?:string;signOutAc
   </aside>
   <main className="main">
    {page==="My Businesses"&&<BusinessPlanner/>}
-   {page==="My Employees"&&<EmployeePlanner/>}
+   {page==="My Employees"&&<EmployeePlanner accountKey={email||"anonymous"}/>}
    {page==="Settings"&&<>
     <div className="eyebrow">Founder Operating System</div>
     <div className="header"><h1>Settings</h1><p>Your MyFounderHQ workspace.</p></div>
