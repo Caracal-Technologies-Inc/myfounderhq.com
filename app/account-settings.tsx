@@ -2,6 +2,7 @@
 import React,{useEffect,useMemo,useRef,useState} from "react";
 import {createBrowserClient} from "@supabase/ssr";
 import ThemeToggle from "./theme-toggle";
+import FounderIdentity from "./founder-identity";
 
 type Mode="email"|"password"|"phone"|null;
 type Field="current"|"new"|"confirm"|"email"|"phone"|"otp"|"general";
@@ -11,6 +12,7 @@ export default function AccountSettings({userId,initialEmail,signOutAction}:{use
  const db=useMemo(()=>createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!),[]);
  const [email,setEmail]=useState(initialEmail||"");
  const [phone,setPhone]=useState("");
+ const [pendingEmail,setPendingEmail]=useState("");
  const [mode,setMode]=useState<Mode>(null);
  const [value,setValue]=useState("");
  const [confirm,setConfirm]=useState("");
@@ -30,12 +32,21 @@ export default function AccountSettings({userId,initialEmail,signOutAction}:{use
 
  useEffect(()=>{
   let active=true;
-  void db.auth.getUser().then(({data,error})=>{
+  const refresh=async()=>{
+   const {data,error}=await db.auth.getUser();
    if(!active)return;
-   if(error){setFeedback({type:"error",field:"general",message:"Account details could not be loaded. Please refresh the page."});return;}
-   if(data.user?.id===userId){setEmail(data.user.email||"");setPhone(data.user.phone||"");}
-  });
-  return()=>{active=false};
+   if(error){setFeedback({type:"error",field:"general",message:"Account details could not be loaded. Please refresh."});return;}
+   if(data.user?.id===userId){
+    setEmail(data.user.email||"");
+    setPhone(data.user.phone||"");
+    setPendingEmail((data.user as typeof data.user&{new_email?:string}).new_email||"");
+   }
+  };
+  void refresh();
+  const {data:auth}=db.auth.onAuthStateChange(()=>{void refresh();});
+  const onFocus=()=>{void refresh();};
+  window.addEventListener("focus",onFocus);
+  return()=>{active=false;auth.subscription.unsubscribe();window.removeEventListener("focus",onFocus);};
  },[db,userId]);
 
  const choose=(next:Mode)=>{
@@ -71,15 +82,16 @@ export default function AccountSettings({userId,initialEmail,signOutAction}:{use
    }else if(mode==="phone"){
     setProgress("Sending verification code…");
     const {error}=await db.auth.updateUser({phone:value.replace(/[\\s().-]/g,"")});
-    if(error){fail(error.message,"phone",phoneRef);return;}
+    if(error){const unconfigured=/unable to get sms provider|sms provider|sms is disabled|phone provider/i.test(error.message);fail(unconfigured?"Phone verification is unavailable because the SMS service has not been configured. No code was sent.":"Could not send verification code: "+error.message,"phone",phoneRef);return;}
     setAwaitingCode(true);
     setFeedback({type:"success",field:"phone",message:"Verification code requested. Enter the SMS code below to finish."});
    }else if(mode==="email"){
     setProgress("Requesting email change…");
-    const {error}=await db.auth.updateUser({email:value.trim()});
+    const {error}=await db.auth.updateUser({email:value.trim()},{emailRedirectTo:window.location.origin+"/auth/callback?next=/email-confirmed"});
     if(error){fail(error.message,"email",emailRef);return;}
     chooseAfterSuccess();
-    setFeedback({type:"success",field:"email",message:"Email change requested. Check your inbox for confirmation instructions."});
+    setPendingEmail(value.trim());
+    setFeedback({type:"success",field:"email",message:"Check BOTH your current and new email inboxes. Supabase may require confirmation from each before the address changes."});
    }else{
     setProgress("Verifying current password…");
     const {error:verifyError}=await db.auth.signInWithPassword({email,password:currentPassword});
@@ -122,9 +134,10 @@ export default function AccountSettings({userId,initialEmail,signOutAction}:{use
   <div className="eyebrow">Founder Operating System</div>
   <div className="header"><h1>Settings</h1></div>
   <div className="card settings-section"><h3>User Profile</h3>
-   <div className="row"><strong>Username</strong><span>{email}</span></div>
 
-   <div className="row"><strong>Email</strong><button className="settings-action-button" type="button" disabled={busy} onClick={()=>choose(mode==="email"?null:"email")}>Change email</button></div>
+
+   <div className="row"><strong>Email</strong><div className="settings-email-controls"><span className="settings-current-email">{email}</span><button className="settings-action-button" type="button" disabled={busy} onClick={()=>choose(mode==="email"?null:"email")}>Change email</button></div></div>
+   {pendingEmail&&pendingEmail!==email&&<p className="settings-pending-email" role="status">Pending: <strong>{pendingEmail}</strong>. Confirm the links sent to your current and new email inboxes; the current email stays active until confirmation finishes.</p>}
    {mode==="email"&&<form className="settings-edit" onSubmit={submit} noValidate>
     <label>New email<input ref={emailRef} required type="email" autoComplete="email" value={value} aria-invalid={!!errorFor("email")} aria-describedby={errorFor("email")?"settings-email-error":undefined} onChange={e=>{setValue(e.target.value);clearError("email");}}/></label>
     {errorFor("email")&&<p id="settings-email-error" className="settings-inline-message settings-inline-error" role="alert">{errorFor("email")}</p>}
@@ -162,6 +175,7 @@ export default function AccountSettings({userId,initialEmail,signOutAction}:{use
 
    <div className="row settings-signout"><strong>Session</strong><form action={signOutAction}><button className="settings-signout-button" type="submit">Sign out</button></form></div>
   </div>
+  <FounderIdentity userId={userId}/>
   <div className="card settings-section"><h3>Preferences</h3><div className="row"><strong>Theme</strong><ThemeToggle userId={userId}/></div></div>
   {mode===null&&feedback?.field==="general"&&message(feedback)}
  </section>;
