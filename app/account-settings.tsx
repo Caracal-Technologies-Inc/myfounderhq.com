@@ -24,7 +24,7 @@ export default function AccountSettings({userId,initialEmail,signOutAction}:{use
   try{
    if(mode==="phone"&&awaitingCode){
     const {data,error}=await db.auth.verifyOtp({phone:value.replace(/[\s().-]/g,""),token:otp,type:"phone_change"});
-    if(error)throw error;setPhone(data.user?.phone||value);setNotice("Phone number verified and updated.");choose("phone");setMode(null);
+    if(error)throw error;setPhone(data.user?.phone||value);choose(null);setNotice("Phone number verified and updated.");
    }else if(mode==="phone"){
     const {error}=await db.auth.updateUser({phone:value.replace(/[\s().-]/g,"")});
     if(error)throw error;setAwaitingCode(true);setNotice("Enter the SMS verification code to confirm the new number.");
