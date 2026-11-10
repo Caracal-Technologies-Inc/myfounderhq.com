@@ -365,3 +365,24 @@ body{background:var(--bg);color:var(--text)}
 .settings-section button:disabled{cursor:wait;opacity:.6}
 [data-theme="dark"] .settings-inline-error{background:#40212a;border-color:#874555;color:#ffd3dc}
 [data-theme="dark"] .settings-inline-success{background:#1e3c2a;border-color:#397c50;color:#c1f6d2}
+
+/* Founder account identity and sensitive document controls */
+.settings-email-controls{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:10px;min-width:0}
+.settings-current-email{font-size:13px;color:var(--muted);overflow-wrap:anywhere}
+.settings-pending-email{margin:8px 0 12px;padding:11px 13px;background:var(--nav-active);border:1px solid var(--line);border-radius:9px;color:var(--sidebar-text);font-size:12px;line-height:1.5}
+.founder-details-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px;margin:20px 0}
+.founder-details-form label,.founder-document-form label{display:flex;flex-direction:column;gap:7px;font-size:12px;font-weight:700;color:var(--sidebar-text);min-width:0}
+.founder-details-form input,.founder-document-form select,.founder-document-form input{width:100%;min-width:0;background:var(--input);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:11px 12px;font-size:13px}
+.founder-details-form>button,.founder-document-form>button{justify-self:start;align-self:end;min-height:42px}
+.founder-document-section{padding-top:19px;border-top:1px solid var(--line)}
+.founder-document-section h4{font-size:14px;margin:0 0 9px}
+.founder-privacy-caption{font-size:11px;color:var(--muted);line-height:1.55;margin:6px 0 13px}
+.founder-document-form{display:grid;grid-template-columns:minmax(180px,1fr) minmax(220px,1.5fr) auto;gap:13px;align-items:end}
+.founder-document-list{margin:15px 0 6px;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.founder-document-row{display:flex;align-items:center;gap:9px;padding:12px 13px;border-bottom:1px solid var(--line)}
+.founder-document-row:last-child{border-bottom:0}
+.founder-document-row span{display:flex;flex:1;min-width:0;flex-direction:column;gap:4px}
+.founder-document-row strong{font-size:12px}
+.founder-document-row small{font-size:11px;color:var(--muted);overflow-wrap:anywhere}
+.founder-document-row button{border:1px solid var(--line);border-radius:7px;background:var(--button-secondary);color:var(--text);padding:8px 10px;font-size:11px;white-space:nowrap}
+@media(max-width:740px){.founder-details-form,.founder-document-form{grid-template-columns:1fr}.settings-email-controls{max-width:100%;justify-content:flex-start}}
