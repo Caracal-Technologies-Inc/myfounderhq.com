@@ -12,7 +12,6 @@ export default function AccountSettings({userId,initialEmail,signOutAction}:{use
  const db=useMemo(()=>createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!),[]);
  const [email,setEmail]=useState(initialEmail||"");
  const [phone,setPhone]=useState("");
- const [pendingEmail,setPendingEmail]=useState("");
  const [mode,setMode]=useState<Mode>(null);
  const [value,setValue]=useState("");
  const [confirm,setConfirm]=useState("");
@@ -39,7 +38,6 @@ export default function AccountSettings({userId,initialEmail,signOutAction}:{use
    if(data.user?.id===userId){
     setEmail(data.user.email||"");
     setPhone(data.user.phone||"");
-    setPendingEmail((data.user as typeof data.user&{new_email?:string}).new_email||"");
    }
   };
   void refresh();
@@ -87,11 +85,10 @@ export default function AccountSettings({userId,initialEmail,signOutAction}:{use
     setFeedback({type:"success",field:"phone",message:"Verification code requested. Enter the SMS code below to finish."});
    }else if(mode==="email"){
     setProgress("Requesting email change…");
-    const {error}=await db.auth.updateUser({email:value.trim()},{emailRedirectTo:window.location.origin+"/auth/callback?next=/email-confirmed"});
+    const {error}=await db.auth.updateUser({email:value.trim()},{emailRedirectTo:window.location.origin+"/email-confirmed"});
     if(error){fail(error.message,"email",emailRef);return;}
     chooseAfterSuccess();
-    setPendingEmail(value.trim());
-    setFeedback({type:"success",field:"email",message:"Check BOTH your current and new email inboxes. Supabase may require confirmation from each before the address changes."});
+    setFeedback({type:"success",field:"email",message:"Email-change email requested. Open the confirmation link to see whether Supabase accepted the change. The email displayed here updates only after Supabase confirms it."});
    }else{
     setProgress("Verifying current password…");
     const {error:verifyError}=await db.auth.signInWithPassword({email,password:currentPassword});
@@ -137,7 +134,6 @@ export default function AccountSettings({userId,initialEmail,signOutAction}:{use
 
 
    <div className="row"><strong>Email</strong><div className="settings-email-controls"><span className="settings-current-email">{email}</span><button className="settings-action-button" type="button" disabled={busy} onClick={()=>choose(mode==="email"?null:"email")}>Change email</button></div></div>
-   {pendingEmail&&pendingEmail!==email&&<p className="settings-pending-email" role="status">Pending: <strong>{pendingEmail}</strong>. Confirm the links sent to your current and new email inboxes; the current email stays active until confirmation finishes.</p>}
    {mode==="email"&&<form className="settings-edit" onSubmit={submit} noValidate>
     <label>New email<input ref={emailRef} required type="email" autoComplete="email" value={value} aria-invalid={!!errorFor("email")} aria-describedby={errorFor("email")?"settings-email-error":undefined} onChange={e=>{setValue(e.target.value);clearError("email");}}/></label>
     {errorFor("email")&&<p id="settings-email-error" className="settings-inline-message settings-inline-error" role="alert">{errorFor("email")}</p>}
