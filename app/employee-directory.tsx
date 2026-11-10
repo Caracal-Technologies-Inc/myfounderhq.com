@@ -3,122 +3,116 @@ import React,{useCallback,useEffect,useMemo,useState} from "react";
 import {createBrowserClient} from "@supabase/ssr";
 
 type Department={id:number;name:string;sort_order:number};
-type Template={id:number;department_id:number;name:string;sort_order:number;description:string;responsibilities:string;skills:string;operating_procedures:string};
-type Instance={id:string;user_id:string;template_id:number;business_id:string|null;status:"Configured"|"Connected"|"Tested"|"Operational";description:string;responsibilities:string;ai_model:string;technology_stack:string;connected_tools:string;skills:string;operating_procedures:string;memory:string;permissions:string;approval_requirements:string;current_tasks:string;execution_status:string;performance_metrics:string;completed_deliverables:string;notes:string};
-type Business={id:string;name:string};
-type Event={id:string;instance_id:string;event_type:string;title:string;detail:string;status:string;created_at:string};
-const fields=[
- ["description","Job description"],["responsibilities","Responsibilities"],["ai_model","AI model"],["technology_stack","Technology stack"],["connected_tools","Tools & integrations (configuration notes)"],["skills","Skills"],["operating_procedures","Operating procedures"],["memory","Persistent memory notes"],["permissions","Permissions"],["approval_requirements","Approval requirements"],["current_tasks","Current tasks (notes)"],["execution_status","Execution status (notes)"],["performance_metrics","Performance metrics"],["completed_deliverables","Completed deliverables"],["notes","Additional notes"]
-] as const;
-type EditableField=typeof fields[number][0];
-const defaultFields:Record<EditableField,string>={description:"",responsibilities:"",ai_model:"",technology_stack:"",connected_tools:"",skills:"",operating_procedures:"",memory:"",permissions:"",approval_requirements:"",current_tasks:"",execution_status:"Not connected",performance_metrics:"",completed_deliverables:"",notes:""};
+type Template={id:number;department_id:number;name:string;sort_order:number};
+type Instance={id:string;template_id:number;business_id:string|null;status:string};
+type Task={id:string;instance_id:string;event_type:string;title:string;detail:string;status:string;created_at:string};
+type Connector={id:string;instance_id:string;provider:string;state:string;notes:string};
+const tabs=["Departments 1–3","Departments 4–6","Departments 7–9","Departments 10–12"];
 export default function AIEmployeeDirectory({userId}:{userId:string}){
  const db=useMemo(()=>createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!),[]);
  const [departments,setDepartments]=useState<Department[]>([]);
  const [templates,setTemplates]=useState<Template[]>([]);
  const [instances,setInstances]=useState<Instance[]>([]);
- const [businesses,setBusinesses]=useState<Business[]>([]);
- const [events,setEvents]=useState<Event[]>([]);
- const [selected,setSelected]=useState<number|null>(null);
- const [scope,setScope]=useState<string>("master");
- const [form,setForm]=useState<Record<EditableField,string>>({...defaultFields});
+ const [tab,setTab]=useState(0);
+ const [selected,setSelected]=useState<Template|null>(null);
+ const [tasks,setTasks]=useState<Task[]>([]);
+ const [connectors,setConnectors]=useState<Connector[]>([]);
+ const [taskName,setTaskName]=useState("");
+ const [provider,setProvider]=useState("");
  const [loading,setLoading]=useState(true);
+ const [detailLoading,setDetailLoading]=useState(false);
  const [saving,setSaving]=useState(false);
  const [error,setError]=useState("");
- const [success,setSuccess]=useState("");
- const [query,setQuery]=useState("");
- const [eventType,setEventType]=useState<"task"|"history"|"memory"|"deliverable">("task");
- const [eventTitle,setEventTitle]=useState("");
- const [eventDetail,setEventDetail]=useState("");
- const [newEvent,setNewEvent]=useState(false);
- const reload=useCallback(async()=>{
+ const [modalError,setModalError]=useState("");
+ const [listTab,setListTab]=useState<"tasks"|"connectors">("tasks");
+ const selectedInstance=selected?instances.find(i=>i.template_id===selected.id&&i.business_id===null):undefined;
+ const load=useCallback(async()=>{
   setLoading(true);setError("");
-  const [d,t,i,b]=await Promise.all([
-   db.from("hq_ai_departments").select("*").order("sort_order"),
-   db.from("hq_ai_employee_templates").select("*").order("id"),
-   db.from("hq_ai_employee_instances").select("*").eq("user_id",userId),
-   db.from("hq_businesses").select("id,name").eq("user_id",userId).order("name")
+  const [d,t,i]=await Promise.all([
+   db.from("hq_ai_departments").select("id,name,sort_order").order("sort_order"),
+   db.from("hq_ai_employee_templates").select("id,department_id,name,sort_order").order("id"),
+   db.from("hq_ai_employee_instances").select("id,template_id,business_id,status").eq("user_id",userId).is("business_id",null)
   ]);
-  const failure=[d,t,i,b].find(x=>x.error);
-  if(failure?.error)setError(failure.error.message);
-  else{setDepartments((d.data||[]) as Department[]);setTemplates((t.data||[]) as Template[]);setInstances((i.data||[]) as Instance[]);setBusinesses((b.data||[]) as Business[]);}
+  const failed=[d,t,i].find(x=>x.error);
+  if(failed?.error)setError(failed.error.message);
+  else {setDepartments((d.data||[]) as Department[]);setTemplates((t.data||[]) as Template[]);setInstances((i.data||[]) as Instance[]);}
   setLoading(false);
  },[db,userId]);
- useEffect(()=>{void reload();},[reload]);
- const selectedTemplate=templates.find(t=>t.id===selected);
- const scopedInstance=instances.find(i=>i.template_id===selected&&(scope==="master"?i.business_id===null:i.business_id===scope));
- const masterInstance=instances.find(i=>i.template_id===selected&&i.business_id===null);
- useEffect(()=>{
-  if(selected===null)return;
-  const template=templates.find(t=>t.id===selected);
-  const instance=instances.find(i=>i.template_id===selected&&(scope==="master"?i.business_id===null:i.business_id===scope));
-  const next={...defaultFields};
-  for(const [field] of fields)next[field]=instance?.[field]||((scope==="master"&&template&&["description","responsibilities","skills","operating_procedures"].includes(field))?String(template[field as "description"|"responsibilities"|"skills"|"operating_procedures"]||""):"");
-  setForm(next);setSuccess("");setError("");setNewEvent(false);
- },[selected,scope,instances,templates]);
- const refreshEvents=useCallback(async(instanceId:string)=>{
-  const {data,error}=await db.from("hq_ai_employee_events").select("*").eq("user_id",userId).eq("instance_id",instanceId).order("created_at",{ascending:false});
-  if(error)setError(error.message);else setEvents((data||[]) as Event[]);
+ useEffect(()=>{void load()},[load]);
+ const loadDetails=useCallback(async(id:string)=>{
+  setDetailLoading(true);setModalError("");
+  const [t,c]=await Promise.all([
+   db.from("hq_ai_employee_events").select("id,instance_id,event_type,title,detail,status,created_at").eq("user_id",userId).eq("instance_id",id).eq("event_type","task").order("created_at",{ascending:false}),
+   db.from("hq_ai_employee_connectors").select("id,instance_id,provider,state,notes").eq("user_id",userId).eq("instance_id",id).order("created_at")
+  ]);
+  const failed=[t,c].find(x=>x.error);
+  if(failed?.error)setModalError(failed.error.message);
+  else{setTasks((t.data||[]) as Task[]);setConnectors((c.data||[]) as Connector[]);}
+  setDetailLoading(false);
  },[db,userId]);
- useEffect(()=>{if(scopedInstance)void refreshEvents(scopedInstance.id);else setEvents([]);},[scopedInstance?.id,refreshEvents]);
- const choose=(id:number)=>{setSelected(id);setScope("master");setSuccess("");setError("");};
- const saveProfile=async(e:React.FormEvent<HTMLFormElement>)=>{
-  e.preventDefault();if(selected===null)return;
-  setSaving(true);setError("");setSuccess("");
-  const payload={...form,user_id:userId,template_id:selected,business_id:scope==="master"?null:scope};
-  // Status remains Configured; an actual agent connection and verified execution are required to promote it.
-  const result=scopedInstance
-   ?await db.from("hq_ai_employee_instances").update({...form,updated_at:new Date().toISOString()}).eq("id",scopedInstance.id).eq("user_id",userId)
-   :await db.from("hq_ai_employee_instances").insert({...payload,status:"Configured"});
-  if(result.error)setError(result.error.message);
-  else{setSuccess("Profile saved.");await reload();}
+ useEffect(()=>{if(selectedInstance)void loadDetails(selectedInstance.id);else{setTasks([]);setConnectors([]);}},[selectedInstance?.id,loadDetails]);
+ const openEmployee=(t:Template)=>{setSelected(t);setTaskName("");setProvider("");setModalError("");setListTab("tasks");};
+ async function addTask(e:React.FormEvent<HTMLFormElement>){
+  e.preventDefault();if(!selectedInstance||!taskName.trim())return;
+  setSaving(true);setModalError("");
+  const {error}=await db.from("hq_ai_employee_events").insert({user_id:userId,instance_id:selectedInstance.id,event_type:"task",title:taskName.trim(),detail:"",status:"Queued"});
+  if(error)setModalError(error.message);else{setTaskName("");await loadDetails(selectedInstance.id);}
   setSaving(false);
- };
- const createBusinessInstance=async(businessId:string)=>{
-  if(selected===null||!businessId)return;
-  const existing=instances.find(i=>i.template_id===selected&&i.business_id===businessId);
-  if(existing){setScope(businessId);return;}
-  setSaving(true);setError("");
-  const {error}=await db.from("hq_ai_employee_instances").insert({user_id:userId,template_id:selected,business_id:businessId,status:"Configured",description:masterInstance?.description||"",responsibilities:masterInstance?.responsibilities||""});
-  if(error)setError(error.message);else{await reload();setScope(businessId);}
+ }
+ async function deleteTask(t:Task){
+  if(!selectedInstance||!window.confirm("Remove this task?"))return;
+  setSaving(true);setModalError("");
+  const {error}=await db.from("hq_ai_employee_events").delete().eq("id",t.id).eq("instance_id",selectedInstance.id).eq("user_id",userId);
+  if(error)setModalError(error.message);else await loadDetails(selectedInstance.id);
   setSaving(false);
- };
- const addEvent=async(e:React.FormEvent<HTMLFormElement>)=>{
-  e.preventDefault();if(!scopedInstance||!eventTitle.trim())return;
-  setSaving(true);setError("");
-  const {error}=await db.from("hq_ai_employee_events").insert({user_id:userId,instance_id:scopedInstance.id,event_type:eventType,title:eventTitle.trim(),detail:eventDetail.trim(),status:"Recorded"});
-  if(error)setError(error.message);else{setEventTitle("");setEventDetail("");setNewEvent(false);await refreshEvents(scopedInstance.id);}
+ }
+ async function addConnector(e:React.FormEvent<HTMLFormElement>){
+  e.preventDefault();if(!selectedInstance||!provider.trim())return;
+  setSaving(true);setModalError("");
+  const {error}=await db.from("hq_ai_employee_connectors").insert({user_id:userId,instance_id:selectedInstance.id,provider:provider.trim(),state:"Not connected"});
+  if(error)setModalError(error.message);else{setProvider("");await loadDetails(selectedInstance.id);}
   setSaving(false);
- };
- const filtered=templates.filter(t=>t.name.toLowerCase().includes(query.toLowerCase())||departments.find(d=>d.id===t.department_id)?.name.toLowerCase().includes(query.toLowerCase()));
- return <section className="ai-directory">
+ }
+ async function deleteConnector(c:Connector){
+  if(!selectedInstance||!window.confirm("Remove "+c.provider+" from this employee?"))return;
+  setSaving(true);setModalError("");
+  const {error}=await db.from("hq_ai_employee_connectors").delete().eq("id",c.id).eq("instance_id",selectedInstance.id).eq("user_id",userId);
+  if(error)setModalError(error.message);else await loadDetails(selectedInstance.id);
+  setSaving(false);
+ }
+ const displayedDepartments=departments.filter((_,i)=>Math.floor(i/3)===tab);
+ return <section className="ai-simple">
   <div className="console-top"><div><div className="eyebrow">AI WORKFORCE</div><h1>My Employees</h1></div></div>
-  <div className="ai-dir-intro"><span>{departments.length} departments</span><span>{templates.length} specialized roles</span><span>Directory configured — agents not yet operational</span></div>
-  {error&&<div className="hq-error" role="alert">{error}<button type="button" onClick={()=>void reload()}>Retry</button></div>}
-  {loading&&<p role="status">Loading workforce…</p>}
-  <div className="ai-dir-filter"><label htmlFor="ai-employee-search">Find an employee</label><input id="ai-employee-search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search roles or departments…" /></div>
-  <div className="ai-departments">
-   {departments.map(d=>{
-    const people=filtered.filter(t=>t.department_id===d.id);
-    if(!people.length)return null;
-    return <section className="ai-dept" key={d.id}><div className="ai-dept-head"><strong>{d.name}</strong><span>{people.length} roles</span></div><div className="ai-roles">{people.map(t=><button type="button" className="ai-role" key={t.id} onClick={()=>choose(t.id)}><span className="ai-role-name">{t.name}</span><span className="ai-role-status">Configured</span></button>)}</div></section>;
-   })}
+  <div className="ai-four-tabs" role="tablist" aria-label="Employee departments">
+   {tabs.map((label,i)=><button type="button" role="tab" key={label} aria-selected={tab===i} className={tab===i?"selected":""} onClick={()=>setTab(i)}>{label}</button>)}
   </div>
-  {selectedTemplate&&<div className="console-overlay ai-profile-overlay" onMouseDown={e=>{if(e.target===e.currentTarget)setSelected(null);}}>
-   <div className="console-dialog ai-profile" role="dialog" aria-modal="true" aria-label={selectedTemplate.name+" profile"}>
-    <div className="console-dialog-head"><div><div className="eyebrow">EMPLOYEE PROFILE</div><h2>{selectedTemplate.name}</h2><p>{departments.find(d=>d.id===selectedTemplate.department_id)?.name}</p></div><button type="button" onClick={()=>setSelected(null)} aria-label="Close profile">×</button></div>
-    <div className="ai-profile-status"><strong>Configured</strong><span>Not connected or tested. No autonomous execution is enabled.</span></div>
-    <div className="ai-instance-bar"><label htmlFor="ai-instance-scope">Profile context</label><select id="ai-instance-scope" value={scope} onChange={e=>setScope(e.target.value)}><option value="master">Master employee template</option>{instances.filter(i=>i.template_id===selected&&i.business_id).map(i=><option value={i.business_id!} key={i.id}>{businesses.find(b=>b.id===i.business_id)?.name||"Business instance"}</option>)}</select></div>
-    <div className="ai-business-attach"><label htmlFor="ai-link-business">Assign this role to a business</label><select id="ai-link-business" value="" disabled={saving} onChange={e=>void createBusinessInstance(e.target.value)}><option value="">Choose business…</option>{businesses.filter(b=>!instances.some(i=>i.template_id===selected&&i.business_id===b.id)).map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
-    <form className="ai-profile-form" onSubmit={saveProfile}>
-     {fields.map(([key,label])=><label key={key}>{label}<textarea rows={key==="responsibilities"||key==="operating_procedures"||key==="memory"?3:2} value={form[key]} onChange={e=>setForm(v=>({...v,[key]:e.target.value}))} placeholder="Not configured" /></label>)}
-     <div className="ai-profile-save">{success&&<span role="status">{success}</span>}<button type="submit" disabled={saving} className="console-primary">{saving?"Saving…":"Save profile"}</button></div>
-    </form>
-    <section className="ai-activity">
-     <div className="ai-activity-head"><h3>Task & activity history</h3><button type="button" onClick={()=>setNewEvent(v=>!v)} disabled={!scopedInstance}>{newEvent?"Cancel":"+ Add record"}</button></div>
-     {newEvent&&scopedInstance&&<form className="console-form" onSubmit={addEvent}><label>Record type<select value={eventType} onChange={e=>setEventType(e.target.value as typeof eventType)}><option value="task">Task</option><option value="history">History</option><option value="memory">Memory</option><option value="deliverable">Deliverable</option></select></label><label>Title<input required value={eventTitle} onChange={e=>setEventTitle(e.target.value)}/></label><label>Details<textarea rows={3} value={eventDetail} onChange={e=>setEventDetail(e.target.value)}/></label><button className="console-primary" type="submit" disabled={saving}>Save record</button></form>}
-     {!scopedInstance?<p>Save this profile to record activity.</p>:events.length===0?<p>No activity recorded.</p>:events.map(ev=><div className="ai-event" key={ev.id}><strong>{ev.title}</strong><small>{ev.event_type} · {new Date(ev.created_at).toLocaleDateString("en-CA")}</small>{ev.detail&&<p>{ev.detail}</p>}</div>)}
-    </section>
+  {error&&<div className="hq-error" role="alert">{error}<button type="button" onClick={()=>void load()}>Retry</button></div>}
+  {loading&&<p role="status">Loading employees…</p>}
+  <div className="ai-simple-groups">
+   {displayedDepartments.map(d=><section className="ai-simple-dept" key={d.id}>
+    <h2>{d.name}</h2>
+    <div className="ai-simple-list">{templates.filter(t=>t.department_id===d.id).map(t=><button type="button" key={t.id} onClick={()=>openEmployee(t)}>{t.name}<span>›</span></button>)}</div>
+   </section>)}
+  </div>
+  {selected&&<div className="console-overlay" onMouseDown={e=>{if(e.target===e.currentTarget)setSelected(null)}}>
+   <div className="console-dialog ai-simple-modal" role="dialog" aria-modal="true" aria-label={selected.name}>
+    <div className="console-dialog-head"><div><h2>{selected.name}</h2><p>{departments.find(d=>d.id===selected.department_id)?.name}</p></div><button type="button" onClick={()=>setSelected(null)} aria-label="Close">×</button></div>
+    <div className="ai-simple-modal-tabs" role="tablist" aria-label="Employee controls">
+     <button type="button" role="tab" aria-selected={listTab==="tasks"} className={listTab==="tasks"?"selected":""} onClick={()=>setListTab("tasks")}>Tasks</button>
+     <button type="button" role="tab" aria-selected={listTab==="connectors"} className={listTab==="connectors"?"selected":""} onClick={()=>setListTab("connectors")}>Connectors</button>
+    </div>
+    {modalError&&<p role="alert" className="hq-file-error">{modalError}</p>}
+    {!selectedInstance?<p>No employee record is available for this role.</p>:<>
+     {detailLoading&&<p role="status">Loading…</p>}
+     {listTab==="tasks"?<>
+      <form className="ai-simple-entry" onSubmit={addTask}><input required maxLength={140} aria-label="Task name" placeholder="New task" value={taskName} onChange={e=>setTaskName(e.target.value)}/><button className="console-primary" type="submit" disabled={saving}>+ Add task</button></form>
+      <div className="ai-simple-items">{!detailLoading&&tasks.length===0&&<p>No tasks yet.</p>}{tasks.map(t=><div className="ai-simple-item" key={t.id}><span>{t.title}</span><button type="button" disabled={saving} onClick={()=>void deleteTask(t)}>Remove</button></div>)}</div>
+     </>:<>
+      <form className="ai-simple-entry" onSubmit={addConnector}><input required maxLength={100} aria-label="Connector name" placeholder="Connector name, e.g. GitHub" value={provider} onChange={e=>setProvider(e.target.value)}/><button className="console-primary" type="submit" disabled={saving}>+ Add connector</button></form>
+      <p className="ai-connector-note">Adding a connector lists it here. It does not authenticate or grant access to the service.</p>
+      <div className="ai-simple-items">{!detailLoading&&connectors.length===0&&<p>No connectors yet.</p>}{connectors.map(c=><div className="ai-simple-item" key={c.id}><span>{c.provider}<small>{c.state}</small></span><button type="button" disabled={saving} onClick={()=>void deleteConnector(c)}>Remove</button></div>)}</div>
+     </>}
+    </>}
    </div>
   </div>}
  </section>;
