@@ -17,7 +17,7 @@ export default function Dashboard({email,signOutAction}:{email?:string;signOutAc
    <div className="foot">Caracal Technologies Inc.<br/>Version 0.1 • Initial foundation</div>
   </aside>
   <main className="main">
-   {page==="My Businesses"&&<BusinessPlanner/>}
+   {page==="My Businesses"&&<BusinessPlanner accountKey={email||"anonymous"}/>}
    {page==="My Employees"&&<EmployeePlanner accountKey={email||"anonymous"}/>}
    {page==="Settings"&&<>
     <div className="eyebrow">Founder Operating System</div>
