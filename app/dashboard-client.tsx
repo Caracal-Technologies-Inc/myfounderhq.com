@@ -25,7 +25,7 @@ export default function Dashboard({email,userId,signOutAction}:{email?:string;us
     <div className="card">
      <h3>Account</h3>
      {email&&<div className="row"><strong>Signed in</strong><span>{email}</span></div>}
-     <div className="row"><strong>Appearance</strong><ThemeToggle/></div>
+     <div className="row"><strong>Appearance</strong><ThemeToggle userId={userId}/></div>
      <div className="row settings-signout"><strong>Session</strong><form action={signOutAction}><button className="settings-signout-button" type="submit">Sign out</button></form></div>
     </div>
    </>}
