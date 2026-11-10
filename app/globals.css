@@ -147,3 +147,28 @@ body{background:var(--bg);color:var(--text)}
 .hq-error{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px 16px;background:#fff0f0;color:#963636;border:1px solid #eec2c2;border-radius:9px;margin:12px 0;font-size:12px}
 .hq-error button{border:1px solid currentColor;background:transparent;color:inherit;border-radius:6px;padding:6px 10px}
 [data-theme="dark"] .hq-error{background:#46232c;color:#ffd6dc;border-color:#754753}
+
+/* Undated portfolio operations matrix: business identity and actions pinned separately. */
+.business-board-scroll{width:100%;overflow:auto;max-height:min(72vh,790px);border:1px solid var(--line);border-top:0;border-radius:0 0 12px 12px;background:var(--surface);scrollbar-gutter:stable}
+.business-board{display:grid;grid-template-columns:280px 170px repeat(4,minmax(265px,1fr));min-width:1510px;width:100%}
+.business-board-head{position:sticky;top:0;z-index:5;display:flex;align-items:center;padding:17px 18px;border-bottom:2px solid var(--accent);border-right:1px solid var(--line);background:var(--sidebar);font-size:11px;letter-spacing:1.2px;font-weight:800;color:var(--sidebar-text);white-space:nowrap;min-height:55px}
+.business-board-name-head{left:0;z-index:9}.business-board-control-head{left:280px;z-index:8}
+.business-board-name,.business-board-actions,.business-board-lane{min-height:135px;border-bottom:1px solid var(--line);border-right:1px solid var(--line)}
+.business-board-name{position:sticky;left:0;z-index:3;display:flex;align-items:flex-start;padding:21px 18px;background:var(--surface);min-width:0}
+.business-board-name strong{font-size:15px;font-weight:800;line-height:1.45;overflow-wrap:anywhere;word-break:normal;white-space:normal;max-width:100%}
+.business-board-actions{position:sticky;left:280px;z-index:2;padding:18px 12px;background:var(--surface);display:flex;flex-direction:column;gap:13px;align-items:flex-start}
+.business-board-status{font-size:11px;font-weight:700;color:var(--accent);background:var(--nav-active);padding:5px 9px;border-radius:6px}
+.business-board-action-buttons{display:flex;flex-direction:column;gap:7px;width:100%}
+.business-board-action-buttons button{border:1px solid var(--line);background:var(--button-secondary);color:var(--text);border-radius:8px;padding:9px 11px;font-size:12px;font-weight:700;text-align:left}
+.business-board-action-buttons button:hover{border-color:var(--accent)}
+.business-board-lane{padding:12px;display:flex;flex-direction:column;gap:9px;background:var(--surface);min-width:0}
+.business-board-lane:nth-of-type(even){background:color-mix(in srgb,var(--bg) 35%,var(--surface))}
+.business-board-task{border:1px solid var(--line);border-left:3px solid var(--accent);background:var(--nav-active);border-radius:9px;padding:10px;display:flex;flex-direction:column;gap:9px}
+.business-board-task-main{text-align:left;color:var(--text);background:transparent;border:0;padding:0;display:flex;flex-direction:column;gap:5px;min-width:0;overflow-wrap:anywhere}
+.business-board-task-main strong{font-size:12px}.business-board-task-main span{font-size:11px;color:var(--muted);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.business-board-task-actions{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.business-board-task-actions button{font-size:10px;background:var(--surface);color:var(--accent);border:1px solid var(--line);padding:6px 9px;border-radius:6px;font-weight:700}
+.business-board-task-actions button:hover{border-color:var(--accent)}
+.business-board-add{font-size:11px;font-weight:700;background:transparent;border:1px dashed var(--line);border-radius:8px;padding:10px;color:var(--muted);text-align:left}
+.business-board-add:hover{color:var(--accent);border-color:var(--accent);background:var(--nav-active)}
+@media(max-width:680px){.business-board{grid-template-columns:200px 132px repeat(4,265px);min-width:1392px}.business-board-control-head,.business-board-actions{left:200px}.business-board-name strong{font-size:13px}.business-board-name,.business-board-actions{padding:14px 10px}}
