@@ -50,6 +50,7 @@ const pipelineStatuses=["Planned","In progress","Review","Done"] as const;
 type BusinessFile={id:string;user_id:string;business_id:string;name:string;storage_path:string;mime_type:string|null;size_bytes:number;created_at:string};
 function BusinessWorkspace({business,db,userId,tasks,onChange,reportError}:{business:Business;db:ReturnType<typeof createBrowserClient>;userId:string;tasks:BusinessTask[];onChange:()=>Promise<void>;reportError:(message:string)=>void}){
  const [taskDialog,setTaskDialog]=useState<BusinessTask|null|undefined>(undefined);
+ const [removingBusiness,setRemovingBusiness]=useState(false);
  const [taskTitle,setTaskTitle]=useState("");
  const [taskNotes,setTaskNotes]=useState("");
  const [taskStatus,setTaskStatus]=useState<BusinessTask["status"]>("Planned");
@@ -68,6 +69,33 @@ function BusinessWorkspace({business,db,userId,tasks,onChange,reportError}:{busi
   setFileLoading(false);
  },[db,userId,business.id]);
  useEffect(()=>{void refreshFiles()},[refreshFiles]);
+ const removeBusiness=async()=>{
+  if(removingBusiness||fileBusy||taskBusy)return;
+  if(!window.confirm("Permanently remove "+business.name+"? This will also delete its tasks, files, and business-specific employee assignments and records. This cannot be undone."))return;
+  setRemovingBusiness(true);
+  try{
+   // Remove actual private Storage objects before cascading their metadata in Postgres.
+   // Collect every page rather than relying on the default 1,000-record REST cap.
+   const paths:string[]=[];
+   for(let offset=0;;offset+=500){
+    const {data,error}=await db.from("hq_business_files").select("storage_path").eq("user_id",userId).eq("business_id",business.id).order("id").range(offset,offset+499);
+    if(error)throw Error(error.message);
+    const page=data||[];
+    paths.push(...page.map(row=>row.storage_path));
+    if(page.length<500)break;
+   }
+   for(let i=0;i<paths.length;i+=100){
+    const {error}=await db.storage.from("hq-business-files").remove(paths.slice(i,i+100));
+    if(error)throw Error("Could not remove attached files: "+error.message);
+   }
+   // Database foreign keys cascade tasks, file metadata, business instances and their histories.
+   const {data,error}=await db.from("hq_businesses").delete().eq("id",business.id).eq("user_id",userId).select("id");
+   if(error)throw Error(error.message);
+   if(!data?.length)throw Error("Business could not be removed. Please refresh and retry.");
+   await onChange();
+  }catch(err){reportError(err instanceof Error?err.message:String(err));}
+  finally{setRemovingBusiness(false);}
+ };
  const editTask=(task:BusinessTask|null)=>{
   setTaskDialog(task);setTaskTitle(task?.title||"");setTaskNotes(task?.notes||"");setTaskStatus(task?.status||"Planned");
  };
@@ -111,7 +139,7 @@ function BusinessWorkspace({business,db,userId,tasks,onChange,reportError}:{busi
   setFileBusy(false);
  };
  return <article className="hq-business-item">
-  <div className="hq-business-name"><h2>{business.name}</h2></div>
+  <div className="hq-business-name"><h2>{business.name}</h2><button className="hq-remove-business" type="button" disabled={removingBusiness||fileBusy||taskBusy} onClick={()=>void removeBusiness()}>{removingBusiness?"Removing…":"Remove business"}</button></div>
   <section className="hq-business-tasks" aria-label={"Tasks for "+business.name}>
    <div className="hq-business-panel-head"><h3>Business tasks</h3><button type="button" onClick={()=>editTask(null)}>+ Add task</button></div>
    {tasks.length===0?<p className="hq-business-muted">No tasks yet</p>:<div className="hq-task-list">{tasks.map(t=><div className="hq-task-line" key={t.id}><div><strong>{t.title}</strong><small>{t.status}</small></div><button type="button" onClick={()=>editTask(t)}>Edit</button><button type="button" className="hq-task-remove" onClick={()=>{if(window.confirm("Delete "+t.title+"?")){void (async()=>{const {error}=await db.from("hq_business_tasks").delete().eq("id",t.id).eq("user_id",userId);if(error)reportError(error.message);else await onChange();})();}}}>Remove</button></div>)}</div>}
