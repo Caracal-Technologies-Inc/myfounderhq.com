@@ -351,3 +351,17 @@ body{background:var(--bg);color:var(--text)}
 .settings-reset-link{display:inline-block;margin-top:14px;padding:11px 15px;border-radius:9px;background:var(--accent);color:var(--accent-on);font-weight:700;text-decoration:none}
 .settings-reset-link:hover{filter:brightness(.95)}
 @media(max-width:560px){.settings-password-buttons{align-items:flex-start}.settings-section .row{flex-wrap:wrap}}
+
+/* Inline form feedback: errors live directly beside the field being corrected. */
+.settings-inline-message{display:flex;align-items:center;gap:8px;max-width:550px;margin:0;padding:10px 12px;font-size:12px;font-weight:600;line-height:1.5;border-radius:8px;border:1px solid var(--line)}
+.settings-inline-error{background:#fff0f2;border-color:#eab9c2;color:#a31e42}
+.settings-inline-error::before{content:"!";display:grid;place-items:center;flex-shrink:0;width:18px;height:18px;border:1.5px solid currentColor;border-radius:50%;font-size:11px}
+.settings-inline-success{background:#edf9f1;border-color:#b5dec4;color:#176536}
+.settings-inline-success::before{content:"✓";font-weight:900}
+.settings-progress{color:var(--accent);font-size:12px;margin:0;font-weight:700}
+.settings-edit input[aria-invalid="true"]{border-color:#bd3654!important;box-shadow:0 0 0 2px rgba(189,54,84,.12)}
+.settings-edit input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.settings-edit input[aria-invalid="true"]:focus-visible{outline-color:#bd3654}
+.settings-section button:disabled{cursor:wait;opacity:.6}
+[data-theme="dark"] .settings-inline-error{background:#40212a;border-color:#874555;color:#ffd3dc}
+[data-theme="dark"] .settings-inline-success{background:#1e3c2a;border-color:#397c50;color:#c1f6d2}
