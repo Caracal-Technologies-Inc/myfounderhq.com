@@ -288,3 +288,9 @@ body{background:var(--bg);color:var(--text)}
 .ai-simple-item button{flex-shrink:0;border:1px solid var(--line);border-radius:7px;padding:6px 9px;background:var(--button-secondary);color:var(--text);font-size:11px}
 .ai-connector-note{font-size:11px;line-height:1.5;color:var(--muted);margin:12px 0 0}
 @media(max-width:700px){.ai-four-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}.ai-simple-modal{padding:17px}.ai-simple-entry{flex-direction:column}}
+
+/* Business deletion action stays clearly separate from the business title. */
+.hq-business-name{display:flex;flex-direction:column;align-items:flex-start;gap:22px}
+.hq-remove-business{background:transparent;border:1px solid var(--line);border-radius:7px;padding:8px 11px;font-size:11px;font-weight:700;color:#aa3959}
+.hq-remove-business:hover:not(:disabled){border-color:#aa3959;background:color-mix(in srgb,#aa3959 8%,var(--surface))}
+.hq-remove-business:disabled{opacity:.5;cursor:wait}
