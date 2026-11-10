@@ -4,11 +4,11 @@ import ThemeToggle from "./theme-toggle";
 import {BusinessPlanner} from "./live-planners";
 import AIEmployeeDirectory from "./employee-directory";
 
-type Section="My Businesses"|"My Employees"|"Settings";
-const pages:Section[]=["My Businesses","My Employees","Settings"];
+type Section="Businesses"|"Employees"|"Settings";
+const pages:Section[]=["Businesses","Employees","Settings"];
 
 export default function Dashboard({email,userId,signOutAction}:{email?:string;userId:string;signOutAction:()=>Promise<void>}){
- const [page,setPage]=useState<Section>("My Employees");
+ const [page,setPage]=useState<Section>("Employees");
  return <div className="shell">
   <aside className="side">
    <div className="logo">MY<span>FOUNDER</span>HQ™</div>
@@ -18,8 +18,8 @@ export default function Dashboard({email,userId,signOutAction}:{email?:string;us
    <div className="foot">Caracal Technologies Inc.<br/>Version 0.1 • Initial foundation</div>
   </aside>
   <main className="main">
-   {page==="My Businesses"&&<BusinessPlanner userId={userId}/>}
-   {page==="My Employees"&&<AIEmployeeDirectory userId={userId}/>}
+   {page==="Businesses"&&<BusinessPlanner userId={userId}/>}
+   {page==="Employees"&&<AIEmployeeDirectory userId={userId}/>}
    {page==="Settings"&&<>
     <div className="eyebrow">Founder Operating System</div>
     <div className="header"><h1>Settings</h1><p>Your MyFounderHQ workspace.</p></div>
