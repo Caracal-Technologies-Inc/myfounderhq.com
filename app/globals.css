@@ -305,3 +305,23 @@ body{background:var(--bg);color:var(--text)}
 .ai-directory-subheading{font-size:16px;font-weight:800;margin:0 0 14px;color:var(--text)}
 .ai-empty{padding:16px 18px;color:var(--muted);font-size:12px;margin:0}
 @media(max-width:600px){.ai-live-row{flex-wrap:wrap;gap:5px 12px}.ai-live-row strong{flex-basis:65%}.ai-live-row .ai-live-department{min-width:0;flex-basis:80%;order:3}.ai-live-row .ai-chevron{order:2}}
+
+/* Workforce condition lights. Only explicitly live-listed employees pulse.
+   Activity is not implied; status comes from Supabase employee records. */
+.ai-state{display:inline-flex!important;align-items:center;gap:7px;white-space:nowrap;width:auto!important;font-size:11px!important;font-weight:700;line-height:1.2}
+.ai-state-label{font-size:10px!important;color:inherit!important}
+.ai-state-dot{width:9px;height:9px;border-radius:50%;background:currentColor;flex-shrink:0;display:inline-block!important;position:relative}
+.ai-state-live{color:#15803d!important}
+.ai-state-inactive{color:#9394a0!important}
+.ai-state-pending{color:#c47a0d!important}
+.ai-state-paused{color:#d97706!important}
+.ai-state-error{color:#dc2626!important}
+.ai-state-live .ai-state-dot{box-shadow:0 0 0 3px rgba(22,163,74,.12);animation:ai-status-pulse 1.6s ease-in-out infinite}
+@keyframes ai-status-pulse{0%,100%{box-shadow:0 0 0 0 rgba(22,163,74,.45);opacity:1}50%{box-shadow:0 0 0 6px rgba(22,163,74,0);opacity:.7}}
+@media(prefers-reduced-motion:reduce){.ai-state-live .ai-state-dot{animation:none;box-shadow:0 0 0 3px rgba(22,163,74,.18)}}
+.ai-live-row .ai-state{margin-left:auto;flex-shrink:0}
+.ai-live-row .ai-live-department{margin-left:15px}
+.ai-simple-list button .ai-directory-name{color:var(--text);font-size:13px!important;flex:1;min-width:0}
+.ai-simple-list button .ai-directory-chevron{font-size:22px!important;margin-left:9px}
+.ai-simple-list button .ai-state{margin-left:auto}
+@media(max-width:600px){.ai-live-row .ai-state{margin-left:0}.ai-live-row .ai-live-department{margin-left:0}}
