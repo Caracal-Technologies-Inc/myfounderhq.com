@@ -47,40 +47,103 @@ function useHQ(userId:string){
 }
 
 const pipelineStatuses=["Planned","In progress","Review","Done"] as const;
+type BusinessFile={id:string;user_id:string;business_id:string;name:string;storage_path:string;mime_type:string|null;size_bytes:number;created_at:string};
+function BusinessWorkspace({business,db,userId,tasks,onChange,reportError}:{business:Business;db:ReturnType<typeof createBrowserClient>;userId:string;tasks:BusinessTask[];onChange:()=>Promise<void>;reportError:(message:string)=>void}){
+ const [taskDialog,setTaskDialog]=useState<BusinessTask|null|undefined>(undefined);
+ const [taskTitle,setTaskTitle]=useState("");
+ const [taskNotes,setTaskNotes]=useState("");
+ const [taskStatus,setTaskStatus]=useState<BusinessTask["status"]>("Planned");
+ const [taskBusy,setTaskBusy]=useState(false);
+ const [fileTab,setFileTab]=useState<"all"|"upload">("all");
+ const [files,setFiles]=useState<BusinessFile[]>([]);
+ const [fileBusy,setFileBusy]=useState(false);
+ const [fileError,setFileError]=useState("");
+ const [fileLoading,setFileLoading]=useState(true);
+ const [chosenFile,setChosenFile]=useState<File|null>(null);
+ const [uploadReset,setUploadReset]=useState(0);
+ const refreshFiles=useCallback(async()=>{
+  setFileLoading(true);setFileError("");
+  const {data,error}=await db.from("hq_business_files").select("*").eq("user_id",userId).eq("business_id",business.id).order("created_at",{ascending:false});
+  if(error)setFileError(error.message);else setFiles((data||[]) as BusinessFile[]);
+  setFileLoading(false);
+ },[db,userId,business.id]);
+ useEffect(()=>{void refreshFiles()},[refreshFiles]);
+ const editTask=(task:BusinessTask|null)=>{
+  setTaskDialog(task);setTaskTitle(task?.title||"");setTaskNotes(task?.notes||"");setTaskStatus(task?.status||"Planned");
+ };
+ const saveTask=async(e:React.FormEvent<HTMLFormElement>)=>{
+  e.preventDefault();if(!taskTitle.trim())return;setTaskBusy(true);
+  const fields={business_id:business.id,title:taskTitle.trim(),notes:taskNotes.trim(),status:taskStatus};
+  const {error}=taskDialog?await db.from("hq_business_tasks").update(fields).eq("id",taskDialog.id).eq("user_id",userId):await db.from("hq_business_tasks").insert({...fields,user_id:userId});
+  if(error)reportError(error.message);else{setTaskDialog(undefined);await onChange();}
+  setTaskBusy(false);
+ };
+ const deleteTask=async()=>{
+  if(!taskDialog||!window.confirm("Delete this task?"))return;
+  setTaskBusy(true);const {error}=await db.from("hq_business_tasks").delete().eq("id",taskDialog.id).eq("user_id",userId);
+  if(error)reportError(error.message);else{setTaskDialog(undefined);await onChange();}
+  setTaskBusy(false);
+ };
+ const upload=async(e:React.FormEvent<HTMLFormElement>)=>{
+  e.preventDefault();if(!chosenFile)return;
+  setFileBusy(true);setFileError("");
+  const safe=chosenFile.name.replace(/[^a-zA-Z0-9._-]/g,"_").slice(-130)||"file";
+  const path=userId+"/"+business.id+"/"+crypto.randomUUID()+"-"+safe;
+  const {error:uploadError}=await db.storage.from("hq-business-files").upload(path,chosenFile,{contentType:chosenFile.type||"application/octet-stream",upsert:false});
+  if(uploadError){setFileError(uploadError.message);setFileBusy(false);return;}
+  const {error:recordError}=await db.from("hq_business_files").insert({user_id:userId,business_id:business.id,name:chosenFile.name,storage_path:path,mime_type:chosenFile.type||null,size_bytes:chosenFile.size});
+  if(recordError){await db.storage.from("hq-business-files").remove([path]);setFileError(recordError.message);}
+  else{setChosenFile(null);setUploadReset(n=>n+1);setFileTab("all");await refreshFiles();}
+  setFileBusy(false);
+ };
+ const openFile=async(file:BusinessFile)=>{
+  setFileError("");
+  const {data,error}=await db.storage.from("hq-business-files").createSignedUrl(file.storage_path,60);
+  if(error||!data?.signedUrl){setFileError(error?.message||"Unable to open file.");return;}
+  window.open(data.signedUrl,"_blank","noopener,noreferrer");
+ };
+ const removeFile=async(file:BusinessFile)=>{
+  if(!window.confirm("Delete "+file.name+" permanently?"))return;setFileBusy(true);setFileError("");
+  const {error:storageError}=await db.storage.from("hq-business-files").remove([file.storage_path]);
+  if(storageError){setFileError(storageError.message);setFileBusy(false);return;}
+  const {error}=await db.from("hq_business_files").delete().eq("id",file.id).eq("user_id",userId);
+  if(error)setFileError(error.message);else await refreshFiles();
+  setFileBusy(false);
+ };
+ return <article className="hq-business-item">
+  <div className="hq-business-name"><h2>{business.name}</h2></div>
+  <section className="hq-business-tasks" aria-label={"Tasks for "+business.name}>
+   <div className="hq-business-panel-head"><h3>Business tasks</h3><button type="button" onClick={()=>editTask(null)}>+ Add task</button></div>
+   {tasks.length===0?<p className="hq-business-muted">No tasks yet</p>:<div className="hq-task-list">{tasks.map(t=><div className="hq-task-line" key={t.id}><div><strong>{t.title}</strong><small>{t.status}</small></div><button type="button" onClick={()=>editTask(t)}>Edit</button><button type="button" className="hq-task-remove" onClick={()=>{if(window.confirm("Delete "+t.title+"?")){void (async()=>{const {error}=await db.from("hq_business_tasks").delete().eq("id",t.id).eq("user_id",userId);if(error)reportError(error.message);else await onChange();})();}}}>Remove</button></div>)}</div>}
+  </section>
+  <section className="hq-business-files" aria-label={"Files for "+business.name}>
+   <div className="hq-business-panel-head"><h3>Business files</h3></div>
+   <div className="hq-file-tabs" role="tablist" aria-label="Business files"><button type="button" role="tab" aria-selected={fileTab==="all"} className={fileTab==="all"?"active":""} onClick={()=>setFileTab("all")}>Files</button><button type="button" role="tab" aria-selected={fileTab==="upload"} className={fileTab==="upload"?"active":""} onClick={()=>setFileTab("upload")}>Upload</button></div>
+   {fileError&&<p role="alert" className="hq-file-error">{fileError}</p>}
+   {fileTab==="all"?<div className="hq-file-list">{fileLoading?<p className="hq-business-muted">Loading files…</p>:files.length===0?<p className="hq-business-muted">No files yet</p>:files.map(f=><div className="hq-file-line" key={f.id}><span title={f.name}>{f.name}</span><button type="button" onClick={()=>void openFile(f)}>Open</button><button type="button" disabled={fileBusy} onClick={()=>void removeFile(f)}>Remove</button></div>)}</div>:<form className="hq-upload-form" onSubmit={upload}><input key={uploadReset} required type="file" onChange={e=>setChosenFile(e.target.files?.[0]||null)}/><button type="submit" disabled={!chosenFile||fileBusy}>{fileBusy?"Uploading…":"Upload file"}</button></form>}
+  </section>
+  {taskDialog!==undefined&&<div className="console-overlay"><div className="console-dialog" role="dialog" aria-modal="true" aria-label="Business task"><div className="console-dialog-head"><h2>{taskDialog?"Edit task":"Add task"}</h2><button type="button" onClick={()=>setTaskDialog(undefined)} aria-label="Close">×</button></div><form className="console-form" onSubmit={saveTask}><label>Task name<input required maxLength={140} value={taskTitle} onChange={e=>setTaskTitle(e.target.value)}/></label><label>Status<select value={taskStatus} onChange={e=>setTaskStatus(e.target.value as BusinessTask["status"])}>{["Planned","In progress","Review","Done"].map(s=><option key={s}>{s}</option>)}</select></label><label>Notes<textarea rows={3} value={taskNotes} onChange={e=>setTaskNotes(e.target.value)}/></label><div className="console-form-actions">{taskDialog&&<button type="button" className="console-danger" disabled={taskBusy} onClick={()=>void deleteTask()}>Remove</button>}<button type="button" className="console-outline" onClick={()=>setTaskDialog(undefined)}>Cancel</button><button type="submit" className="console-primary" disabled={taskBusy}>{taskBusy?"Saving…":"Save task"}</button></div></form></div></div>}
+ </article>;
+}
 export function BusinessPlanner({userId}:{userId:string}){
  const h=useHQ(userId);
  const [open,setOpen]=useState(false);
  const [name,setName]=useState("");
  const [busy,setBusy]=useState(false);
  const saveBusiness=async(event:React.FormEvent<HTMLFormElement>)=>{
-  event.preventDefault();
-  const businessName=name.trim();
-  if(!businessName)return;
+  event.preventDefault();const businessName=name.trim();if(!businessName)return;
   setBusy(true);
-  const saved=await h.mutate(()=>h.db.from("hq_businesses").insert({
-   user_id:userId,name:businessName,status:"Planning"
-  }));
+  const {error}=await h.db.from("hq_businesses").insert({user_id:userId,name:businessName,status:"Planning"});
+  if(error)h.setError(error.message);else{setOpen(false);setName("");await h.refresh();}
   setBusy(false);
-  if(saved){setOpen(false);setName("");}
  };
  return <section className="planner business-console hq-live">
-  <div className="console-top">
-   <div><div className="eyebrow">BUSINESS CONTROL CENTER</div><h1>My Businesses</h1></div>
-   <button type="button" className="console-primary" onClick={()=>setOpen(true)}>+ Add business</button>
-  </div>
-  {h.error&&<div className="hq-error" role="alert">{h.error}<button type="button" onClick={()=>void h.refresh()}>Retry</button></div>}
-  {open&&<div className="console-overlay">
-   <div className="console-dialog" role="dialog" aria-modal="true" aria-label="Add business">
-    <div className="console-dialog-head"><h2>Add business</h2><button type="button" aria-label="Close" onClick={()=>setOpen(false)}>×</button></div>
-    <form className="console-form" onSubmit={saveBusiness}>
-     <label>Business name<input required maxLength={100} value={name} onChange={e=>setName(e.target.value)}/></label>
-     <div className="console-form-actions">
-      <button type="button" className="console-outline" onClick={()=>setOpen(false)}>Cancel</button>
-      <button type="submit" className="console-primary" disabled={busy}>{busy?"Adding…":"Add business"}</button>
-     </div>
-    </form>
-   </div>
-  </div>}
+  <div className="console-top"><div><div className="eyebrow">BUSINESS CONTROL CENTER</div><h1>My Businesses</h1></div><button className="console-primary" type="button" onClick={()=>setOpen(true)}>+ Add business</button></div>
+  {h.error&&<div className="hq-error" role="alert">{h.error}<button onClick={()=>void h.refresh()}>Retry</button></div>}
+  {h.loading&&<p className="hq-business-muted" role="status">Loading businesses…</p>}
+  {!h.loading&&!h.businesses.length&&<p className="hq-business-muted">No businesses yet</p>}
+  <div className="hq-business-list">{h.businesses.map(b=><BusinessWorkspace key={b.id} business={b} userId={userId} db={h.db} tasks={h.businessTasks.filter(t=>t.business_id===b.id)} onChange={h.refresh} reportError={h.setError}/>)}</div>
+  {open&&<div className="console-overlay"><div className="console-dialog" role="dialog" aria-modal="true" aria-label="Add business"><div className="console-dialog-head"><h2>Add business</h2><button type="button" onClick={()=>setOpen(false)} aria-label="Close">×</button></div><form className="console-form" onSubmit={saveBusiness}><label>Business name<input required maxLength={100} value={name} onChange={e=>setName(e.target.value)}/></label><div className="console-form-actions"><button type="button" className="console-outline" onClick={()=>setOpen(false)}>Cancel</button><button type="submit" className="console-primary" disabled={busy}>{busy?"Adding…":"Add business"}</button></div></form></div></div>}
  </section>;
 }
 
