@@ -4,7 +4,7 @@ import {createBrowserClient} from "@supabase/ssr";
 
 type Department={id:number;name:string;sort_order:number};
 type Template={id:number;department_id:number;name:string;sort_order:number};
-type Instance={id:string;template_id:number;business_id:string|null;status:string;is_live:boolean};
+type Instance={id:string;template_id:number;business_id:string|null;status:string;is_live:boolean;execution_status:string};
 type Task={id:string;instance_id:string;event_type:string;title:string;detail:string;status:string;created_at:string};
 type Connector={id:string;instance_id:string;provider:string;state:string;notes:string};
 export default function AIEmployeeDirectory({userId}:{userId:string}){
@@ -23,6 +23,18 @@ export default function AIEmployeeDirectory({userId}:{userId:string}){
  const [error,setError]=useState("");
  const [modalError,setModalError]=useState("");
  const [listTab,setListTab]=useState<"tasks"|"connectors">("tasks");
+ const indicatorFor=(templateId:number)=>{
+  const employee=instances.find(i=>i.template_id===templateId&&i.business_id===null);
+  if(!employee)return {kind:"inactive",label:"Not configured"};
+  const runState=(employee.execution_status||"").toLowerCase();
+  if(/error|failed|blocked/.test(runState))return {kind:"error",label:"Attention required"};
+  if(/paused|stopped/.test(runState))return {kind:"paused",label:"Paused"};
+  if(employee.is_live)return {kind:"live",label:"Live"};
+  if(employee.status==="Connected"||employee.status==="Tested")return {kind:"pending",label:employee.status};
+  if(employee.status==="Operational")return {kind:"pending",label:"Operational (not live)"};
+  return {kind:"inactive",label:"Configured"};
+ };
+ const statusMarker=(templateId:number)=>{const indicator=indicatorFor(templateId);return <span className={"ai-state ai-state-"+indicator.kind} title={indicator.kind==="live"?"Listed as live. Active agent execution is not verified.":indicator.label}><span className="ai-state-dot" aria-hidden="true"/><span className="ai-state-label">{indicator.label}</span></span>;};
  const selectedInstance=selected?instances.find(i=>i.template_id===selected.id&&i.business_id===null):undefined;
  const liveTemplates=templates.filter(t=>instances.some(i=>i.template_id===t.id&&i.business_id===null&&i.is_live));
  const directoryTemplates=templates.filter(t=>!liveTemplates.some(l=>l.id===t.id));
@@ -31,7 +43,7 @@ export default function AIEmployeeDirectory({userId}:{userId:string}){
   const [d,t,i]=await Promise.all([
    db.from("hq_ai_departments").select("id,name,sort_order").order("sort_order"),
    db.from("hq_ai_employee_templates").select("id,department_id,name,sort_order").order("id"),
-   db.from("hq_ai_employee_instances").select("id,template_id,business_id,status,is_live").eq("user_id",userId).is("business_id",null)
+   db.from("hq_ai_employee_instances").select("id,template_id,business_id,status,is_live,execution_status").eq("user_id",userId).is("business_id",null)
   ]);
   const failed=[d,t,i].find(x=>x.error);
   if(failed?.error)setError(failed.error.message);
@@ -88,7 +100,7 @@ export default function AIEmployeeDirectory({userId}:{userId:string}){
    <h2>Live Employees</h2>
    <div className="ai-simple-list">
     {liveTemplates.map(t=><button type="button" className="ai-live-row" key={t.id} onClick={()=>openEmployee(t)}>
-     <strong>{t.name}</strong><span className="ai-live-department">{departments.find(d=>d.id===t.department_id)?.name}</span><span className="ai-chevron">›</span>
+     <strong>{t.name}</strong>{statusMarker(t.id)}<span className="ai-live-department">{departments.find(d=>d.id===t.department_id)?.name}</span><span className="ai-chevron">›</span>
     </button>)}
     {!loading&&liveTemplates.length===0&&<p className="ai-empty">No live employees yet.</p>}
    </div>
@@ -99,7 +111,7 @@ export default function AIEmployeeDirectory({userId}:{userId:string}){
     const members=directoryTemplates.filter(t=>t.department_id===d.id);
     return members.length>0?<section className="ai-simple-dept" key={d.id}>
      <h2>{d.name}</h2>
-     <div className="ai-simple-list">{members.map(t=><button type="button" key={t.id} onClick={()=>openEmployee(t)}>{t.name}<span>›</span></button>)}</div>
+     <div className="ai-simple-list">{members.map(t=><button type="button" key={t.id} onClick={()=>openEmployee(t)}><span className="ai-directory-name">{t.name}</span>{statusMarker(t.id)}<span className="ai-directory-chevron">›</span></button>)}</div>
     </section>:null;
    })}
   </div>
