@@ -2,8 +2,8 @@
 import {useState} from "react";
 import ThemeToggle from "./theme-toggle";
 
-type Section="My Employees"|"Settings";
-const pages:Section[]=["My Employees","Settings"];
+type Section="My Businesses"|"My Employees"|"Settings";
+const pages:Section[]=["My Businesses","My Employees","Settings"];
 
 export default function Dashboard({email,signOutAction}:{email?:string;signOutAction:()=>Promise<void>}){
  const [page,setPage]=useState<Section>("My Employees");
