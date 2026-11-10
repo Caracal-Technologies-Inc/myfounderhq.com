@@ -1,12 +1,12 @@
 "use client";
 import {useState} from "react";
 import ThemeToggle from "./theme-toggle";
-import {BusinessPlanner,EmployeePlanner} from "./planners";
+import {BusinessPlanner,EmployeePlanner} from "./live-planners";
 
 type Section="My Businesses"|"My Employees"|"Settings";
 const pages:Section[]=["My Businesses","My Employees","Settings"];
 
-export default function Dashboard({email,signOutAction}:{email?:string;signOutAction:()=>Promise<void>}){
+export default function Dashboard({email,userId,signOutAction}:{email?:string;userId:string;signOutAction:()=>Promise<void>}){
  const [page,setPage]=useState<Section>("My Employees");
  return <div className="shell">
   <aside className="side">
@@ -17,8 +17,8 @@ export default function Dashboard({email,signOutAction}:{email?:string;signOutAc
    <div className="foot">Caracal Technologies Inc.<br/>Version 0.1 • Initial foundation</div>
   </aside>
   <main className="main">
-   {page==="My Businesses"&&<BusinessPlanner accountKey={email||"anonymous"}/>}
-   {page==="My Employees"&&<EmployeePlanner accountKey={email||"anonymous"}/>}
+   {page==="My Businesses"&&<BusinessPlanner userId={userId}/>}
+   {page==="My Employees"&&<EmployeePlanner userId={userId}/>}
    {page==="Settings"&&<>
     <div className="eyebrow">Founder Operating System</div>
     <div className="header"><h1>Settings</h1><p>Your MyFounderHQ workspace.</p></div>
