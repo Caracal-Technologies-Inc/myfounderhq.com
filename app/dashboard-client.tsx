@@ -1,6 +1,7 @@
 "use client";
 import {useState} from "react";
 import ThemeToggle from "./theme-toggle";
+import {BusinessPlanner,EmployeePlanner} from "./planners";
 
 type Section="My Businesses"|"My Employees"|"Settings";
 const pages:Section[]=["My Businesses","My Employees","Settings"];
@@ -16,6 +17,8 @@ export default function Dashboard({email,signOutAction}:{email?:string;signOutAc
    <div className="foot">Caracal Technologies Inc.<br/>Version 0.1 • Initial foundation</div>
   </aside>
   <main className="main">
+   {page==="My Businesses"&&<BusinessPlanner/>}
+   {page==="My Employees"&&<EmployeePlanner/>}
    {page==="Settings"&&<>
     <div className="eyebrow">Founder Operating System</div>
     <div className="header"><h1>Settings</h1><p>Your MyFounderHQ workspace.</p></div>
