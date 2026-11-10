@@ -294,3 +294,14 @@ body{background:var(--bg);color:var(--text)}
 .hq-remove-business{background:transparent;border:1px solid var(--line);border-radius:7px;padding:8px 11px;font-size:11px;font-weight:700;color:#aa3959}
 .hq-remove-business:hover:not(:disabled){border-color:#aa3959;background:color-mix(in srgb,#aa3959 8%,var(--surface))}
 .hq-remove-business:disabled{opacity:.5;cursor:wait}
+
+/* Compact live employee grouping above the categorized directory */
+.ai-live-section{border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden;margin-bottom:26px}
+.ai-live-section>h2{font-size:14px;font-weight:800;margin:0;padding:15px 18px;background:var(--nav-active);border-bottom:1px solid var(--line)}
+.ai-live-row{display:flex!important;align-items:center;gap:15px}
+.ai-live-row strong{font-size:13px;font-weight:700;flex:1}
+.ai-live-row .ai-live-department{font-size:12px;font-weight:500;color:var(--muted);min-width:190px;text-align:left}
+.ai-live-row .ai-chevron{margin-left:auto}
+.ai-directory-subheading{font-size:16px;font-weight:800;margin:0 0 14px;color:var(--text)}
+.ai-empty{padding:16px 18px;color:var(--muted);font-size:12px;margin:0}
+@media(max-width:600px){.ai-live-row{flex-wrap:wrap;gap:5px 12px}.ai-live-row strong{flex-basis:65%}.ai-live-row .ai-live-department{min-width:0;flex-basis:80%;order:3}.ai-live-row .ai-chevron{order:2}}
