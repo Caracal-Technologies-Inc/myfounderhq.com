@@ -8,5 +8,5 @@ export default async function Home(){
  const supabase=await supabaseServer();
  const {data:{user},error}=await supabase.auth.getUser();
  if(error||!user)redirect("/login");
- return <Dashboard email={user.email} signOutAction={signOut}/>;
+ return <Dashboard email={user.email} userId={user.id} signOutAction={signOut}/>;
 }
