@@ -172,3 +172,36 @@ body{background:var(--bg);color:var(--text)}
 .business-board-add{font-size:11px;font-weight:700;background:transparent;border:1px dashed var(--line);border-radius:8px;padding:10px;color:var(--muted);text-align:left}
 .business-board-add:hover{color:var(--accent);border-color:var(--accent);background:var(--nav-active)}
 @media(max-width:680px){.business-board{grid-template-columns:200px 132px repeat(4,265px);min-width:1392px}.business-board-control-head,.business-board-actions{left:200px}.business-board-name strong{font-size:13px}.business-board-name,.business-board-actions{padding:14px 10px}}
+
+/* Business workspace: precisely three visible sections, powered by Supabase. */
+.hq-business-list{display:flex;flex-direction:column;gap:14px;margin-top:22px}
+.hq-business-item{display:grid;grid-template-columns:minmax(220px,1fr) minmax(300px,1.45fr) minmax(300px,1.45fr);border:1px solid var(--line);border-radius:13px;background:var(--surface);overflow:hidden;min-height:172px}
+.hq-business-name{padding:22px 20px;border-right:1px solid var(--line);min-width:0}
+.hq-business-name h2{font-size:19px;line-height:1.4;letter-spacing:-.3px;margin:0;overflow-wrap:anywhere}
+.hq-business-tasks,.hq-business-files{padding:15px 17px;min-width:0}
+.hq-business-tasks{border-right:1px solid var(--line)}
+.hq-business-panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:33px;margin-bottom:12px}
+.hq-business-panel-head h3{font-size:13px;margin:0;font-weight:800}
+.hq-business-panel-head button{border:1px solid var(--line);background:var(--button-secondary);color:var(--text);border-radius:7px;padding:8px 10px;font-size:11px;font-weight:700;white-space:nowrap}
+.hq-business-panel-head button:hover{border-color:var(--accent)}
+.hq-business-muted{font-size:12px;color:var(--muted);margin:14px 0}
+.hq-task-list{display:flex;flex-direction:column;gap:8px}
+.hq-task-line{display:flex;align-items:center;gap:8px;padding:10px 9px;border:1px solid var(--line);border-radius:7px}
+.hq-task-line>div{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.hq-task-line strong{font-size:12px;overflow-wrap:anywhere}
+.hq-task-line small{color:var(--muted);font-size:10px}
+.hq-task-line button,.hq-file-line button{border:1px solid var(--line);background:var(--button-secondary);color:var(--text);border-radius:6px;padding:6px 8px;font-size:11px;flex-shrink:0}
+.hq-task-line .hq-task-remove{color:#a74364}
+.hq-file-tabs{display:flex;gap:3px;border-bottom:1px solid var(--line);padding-bottom:6px}
+.hq-file-tabs button{background:transparent;border:0;color:var(--muted);padding:7px 12px;border-radius:7px;font-size:11px;font-weight:700}
+.hq-file-tabs button.active{background:var(--nav-active);color:var(--accent)}
+.hq-file-list{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.hq-file-line{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:7px;padding:7px}
+.hq-file-line span{font-size:11px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hq-upload-form{display:flex;flex-direction:column;gap:12px;margin-top:12px}
+.hq-upload-form input{font-size:11px;color:var(--text);max-width:100%}
+.hq-upload-form button{align-self:flex-start;background:var(--accent);color:var(--accent-on);border:0;border-radius:7px;padding:9px 13px;font-size:12px;font-weight:700}
+.hq-upload-form button:disabled{opacity:.5}
+.hq-file-error{font-size:11px;color:#a53e5b;margin:7px 0}
+@media(max-width:1100px){.hq-business-item{grid-template-columns:minmax(200px,1fr) minmax(280px,1.5fr)}.hq-business-name{grid-column:1/-1;border-right:0;border-bottom:1px solid var(--line)}.hq-business-tasks{border-right:1px solid var(--line)}}
+@media(max-width:700px){.hq-business-item{display:flex;flex-direction:column}.hq-business-name,.hq-business-tasks{border-right:0;border-bottom:1px solid var(--line)}.hq-business-tasks,.hq-business-files{padding:16px}.hq-business-name{padding:17px}}
