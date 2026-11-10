@@ -3,7 +3,7 @@ import React,{useCallback,useEffect,useMemo,useState} from "react";
 import {createBrowserClient} from "@supabase/ssr";
 
 type Business={id:string;user_id:string;name:string;description:string;status:"Planning"|"Active"|"Paused"|"Launched"};
-type BusinessTask={id:string;user_id:string;business_id:string;title:string;start_date:string;end_date:string;notes:string;status:"Planned"|"In progress"|"Review"|"Done"};
+type BusinessTask={id:string;user_id:string;business_id:string;title:string;start_date:string|null;end_date:string|null;notes:string;status:"Planned"|"In progress"|"Review"|"Done"};
 type Employee={id:string;user_id:string;name:string;role:string;department:string;instructions:string;status:"Candidate"|"Active"|"Paused"};
 type Assignment={id:string;user_id:string;employee_id:string;assigned_date:string;title:string;details:string;status:"Queued"|"In progress"|"Review"|"Complete"};
 const startDay=(d:Date)=>new Date(d.getFullYear(),d.getMonth(),d.getDate());
@@ -46,55 +46,67 @@ function useHQ(userId:string){
  return {db,businesses,businessTasks,employees,assignments,loading,error,setError,refresh,mutate};
 }
 
+const pipelineStatuses=["Planned","In progress","Review","Done"] as const;
 export function BusinessPlanner({userId}:{userId:string}){
  const h=useHQ(userId);
- const [view,setView]=useState<"timeline"|"setup">("timeline");
- const [shift,setShift]=useState(0);
+ const [view,setView]=useState<"board"|"setup">("board");
  const [entry,setEntry]=useState<Business|null|undefined>(undefined);
  const [form,setForm]=useState(newBusiness);
  const [task,setTask]=useState<BusinessTask|null|undefined>(undefined);
  const [taskBusiness,setTaskBusiness]=useState("");
  const [title,setTitle]=useState("");
- const [from,setFrom]=useState("");
- const [to,setTo]=useState("");
  const [notes,setNotes]=useState("");
  const [status,setStatus]=useState<BusinessTask["status"]>("Planned");
  const [busy,setBusy]=useState(false);
- const now=startDay(new Date());
- const monday=moveDay(now,-((now.getDay()+6)%7)+shift*28);
- const dates=Array.from({length:28},(_,i)=>moveDay(monday,i));
- const start=dayIndex(iso(dates[0]));
  const openBusiness=(b:Business|null)=>{setForm(b?{name:b.name,description:b.description,status:b.status}:newBusiness);setEntry(b);};
- const openTask=(businessId:string,t:BusinessTask|null)=>{setTaskBusiness(businessId);setTask(t);setTitle(t?.title||"");setFrom(t?.start_date||iso(now));setTo(t?.end_date||iso(moveDay(now,3)));setNotes(t?.notes||"");setStatus(t?.status||"Planned");};
+ const openTask=(businessId:string,t:BusinessTask|null,stage:BusinessTask["status"]="Planned")=>{
+  setTaskBusiness(businessId);setTask(t);setTitle(t?.title||"");setNotes(t?.notes||"");setStatus(t?.status||stage);
+ };
  const saveBusiness=async(e:React.FormEvent)=>{e.preventDefault();if(!form.name.trim())return;setBusy(true);
   const values={name:form.name.trim(),description:form.description.trim(),status:form.status};
   const ok=await h.mutate(()=>entry?h.db.from("hq_businesses").update(values).eq("id",entry.id).eq("user_id",userId):h.db.from("hq_businesses").insert({...values,user_id:userId}));
   setBusy(false);if(ok)setEntry(undefined);
  };
- const saveTask=async(e:React.FormEvent)=>{e.preventDefault();if(!title.trim()||dayIndex(to)<dayIndex(from)){h.setError("Enter a title and an end date no earlier than the start date.");return;}setBusy(true);
-  const values={business_id:taskBusiness,title:title.trim(),start_date:from,end_date:to,notes:notes.trim(),status};
+ const saveTask=async(e:React.FormEvent)=>{e.preventDefault();if(!title.trim())return;setBusy(true);
+  const values={business_id:taskBusiness,title:title.trim(),notes:notes.trim(),status};
   const ok=await h.mutate(()=>task?h.db.from("hq_business_tasks").update(values).eq("id",task.id).eq("user_id",userId):h.db.from("hq_business_tasks").insert({...values,user_id:userId}));
   setBusy(false);if(ok)setTask(undefined);
+ };
+ const changeStage=async(t:BusinessTask,next:BusinessTask["status"])=>{
+  await h.mutate(()=>h.db.from("hq_business_tasks").update({status:next}).eq("id",t.id).eq("user_id",userId));
  };
  const removeBusiness=async()=>{if(!entry||!window.confirm("Permanently delete this business and all its tasks?"))return;setBusy(true);const ok=await h.mutate(()=>h.db.from("hq_businesses").delete().eq("id",entry.id).eq("user_id",userId));setBusy(false);if(ok)setEntry(undefined);};
  const removeTask=async()=>{if(!task||!window.confirm("Delete this task?"))return;setBusy(true);const ok=await h.mutate(()=>h.db.from("hq_business_tasks").delete().eq("id",task.id).eq("user_id",userId));setBusy(false);if(ok)setTask(undefined);};
  return <section className="planner business-console hq-live">
-  <div className="console-top"><div><div className="eyebrow">BUSINESS CONTROL CENTER</div><h1>My Businesses</h1></div><button className="console-primary" onClick={()=>{setView("setup");openBusiness(null)}}>+ Add business</button></div>
-  <div className="console-toolbar"><div className="console-switch"><button className={view==="timeline"?"selected":""} onClick={()=>setView("timeline")}>▤ Timeline view</button><button className={view==="setup"?"selected":""} onClick={()=>setView("setup")}>⚙ Business setup</button></div><span className="console-count">{h.businesses.length} businesses · {h.businessTasks.length} tasks · Supabase</span>{view==="timeline"&&<div className="planner-controls"><button onClick={()=>setShift(n=>n-1)} aria-label="Previous 28 days">‹</button><button onClick={()=>setShift(0)}>Today</button><button onClick={()=>setShift(n=>n+1)} aria-label="Next 28 days">›</button></div>}</div>
+  <div className="console-top"><div><div className="eyebrow">BUSINESS CONTROL CENTER</div><h1>My Businesses</h1></div><button className="console-primary" type="button" onClick={()=>{setView("setup");openBusiness(null)}}>+ Add business</button></div>
+  <div className="console-toolbar"><div className="console-switch"><button type="button" aria-pressed={view==="board"} className={view==="board"?"selected":""} onClick={()=>setView("board")}>▤ Operations view</button><button type="button" aria-pressed={view==="setup"} className={view==="setup"?"selected":""} onClick={()=>setView("setup")}>⚙ Business setup</button></div><span className="console-count">{h.businesses.length} businesses · {h.businessTasks.length} tasks · Supabase</span></div>
   {h.error&&<div className="hq-error" role="alert">{h.error}<button onClick={()=>void h.refresh()}>Retry</button></div>}
   {h.loading&&<p role="status">Syncing with Supabase…</p>}
-  {view==="timeline"?<>
-   <div className="console-hint"><strong>PORTFOLIO COMMAND GRID</strong><span>{pretty(dates[0])} – {pretty(dates[27])} · Scroll horizontally · Select a bar to edit</span></div>
-   <div className="business-scroll" tabIndex={0}><div className="business-grid"><div className="business-sticky-corner">BUSINESS / TASK</div><div className="business-dates">{dates.map((d,i)=><div className={"business-day "+(iso(d)===iso(now)?"is-today":"")} key={i}><span>{d.toLocaleDateString("en-CA",{weekday:"short"})}</span><strong>{d.getDate()}</strong></div>)}</div>
-    {h.businesses.map(b=><React.Fragment key={b.id}><div className="business-group-heading"><div className="business-heading-name"><span className="business-small-avatar">{b.name.slice(0,2).toUpperCase()}</span><strong>{b.name}</strong><span className="business-state">{b.status}</span></div><div className="business-heading-actions"><button onClick={()=>openTask(b.id,null)}>+ Task</button><button onClick={()=>{setView("setup");openBusiness(b)}} aria-label={"Configure "+b.name}>⚙</button></div></div><div className="business-group-track"><span>{h.businessTasks.filter(t=>t.business_id===b.id).length} tasks</span></div>
-     {h.businessTasks.filter(t=>t.business_id===b.id).map(t=>{const l=Math.max(0,dayIndex(t.start_date)-start),r=Math.min(28,dayIndex(t.end_date)-start+1);return <React.Fragment key={t.id}><div className="business-task-name">{t.title}</div><div className="business-task-track">{r>l&&<button onClick={()=>openTask(b.id,t)} className={"business-task-bar state-"+t.status.toLowerCase().replaceAll(" ","-")} style={{left:l*42,width:(r-l)*42-4}}>{t.title}<span>{t.status}</span></button>}</div></React.Fragment>})}
-     {!h.businessTasks.some(t=>t.business_id===b.id)&&<><div className="business-task-name is-empty">No tasks yet</div><div className="business-task-track business-empty-track"><button onClick={()=>openTask(b.id,null)}>+ Schedule task</button></div></>}
-    </React.Fragment>)}
-   </div></div>
-   {!h.loading&&!h.businesses.length&&<div className="console-empty">No businesses yet. Select <strong>+ Add business</strong> to begin.</div>}
-  </>:<div className="console-setup"><div className="console-setup-head"><div><h2>Business registry</h2><p>Configure businesses and their work.</p></div><button className="console-outline" onClick={()=>openBusiness(null)}>+ New business</button></div><div className="console-directory">{h.businesses.map(b=><div className="console-profile" key={b.id}><span className="console-avatar">{b.name.slice(0,2).toUpperCase()}</span><div className="console-profile-info"><strong>{b.name}</strong><span>{b.description||"No description"}</span><small>{b.status} · {h.businessTasks.filter(t=>t.business_id===b.id).length} tasks</small></div><button className="console-outline" onClick={()=>openTask(b.id,null)}>+ Task</button><button className="console-outline" onClick={()=>openBusiness(b)}>Configure</button></div>)}</div></div>}
-  {entry!==undefined&&<div className="console-overlay"><div className="console-dialog" role="dialog" aria-modal="true" aria-label="Business editor"><div className="console-dialog-head"><h2>{entry?"Configure business":"Add business"}</h2><button onClick={()=>setEntry(undefined)} aria-label="Close">×</button></div><form className="console-form" onSubmit={saveBusiness}><label>Business name<input required maxLength={100} value={form.name} onChange={e=>setForm(v=>({...v,name:e.target.value}))}/></label><label>Description<input value={form.description} onChange={e=>setForm(v=>({...v,description:e.target.value}))}/></label><label>Status<select value={form.status} onChange={e=>setForm(v=>({...v,status:e.target.value as Business["status"]}))}>{["Planning","Active","Paused","Launched"].map(x=><option key={x}>{x}</option>)}</select></label><div className="console-form-actions">{entry&&<button className="console-danger" type="button" disabled={busy} onClick={()=>void removeBusiness()}>Delete business</button>}<button className="console-outline" type="button" onClick={()=>setEntry(undefined)}>Cancel</button><button className="console-primary" disabled={busy}>Save to Supabase</button></div></form></div></div>}
-  {task!==undefined&&<div className="console-overlay"><div className="console-dialog" role="dialog" aria-modal="true" aria-label="Task editor"><div className="console-dialog-head"><h2>{task?"Edit task":"Schedule task"}</h2><button onClick={()=>setTask(undefined)} aria-label="Close">×</button></div><form className="console-form" onSubmit={saveTask}><label>Task<input required maxLength={140} value={title} onChange={e=>setTitle(e.target.value)}/></label><div className="business-dates-form"><label>Start<input type="date" required value={from} onChange={e=>setFrom(e.target.value)}/></label><label>End<input type="date" required value={to} onChange={e=>setTo(e.target.value)}/></label></div><label>Status<select value={status} onChange={e=>setStatus(e.target.value as BusinessTask["status"])}>{["Planned","In progress","Review","Done"].map(x=><option key={x}>{x}</option>)}</select></label><label>Instructions<textarea rows={4} value={notes} onChange={e=>setNotes(e.target.value)}/></label><div className="console-form-actions">{task&&<button type="button" className="console-danger" disabled={busy} onClick={()=>void removeTask()}>Delete task</button>}<button type="button" className="console-outline" onClick={()=>setTask(undefined)}>Cancel</button><button className="console-primary" disabled={busy}>Save to Supabase</button></div></form></div></div>}
+  {view==="board"?<>
+   <div className="console-hint"><strong>PORTFOLIO OPERATIONS</strong><span>Business names and controls remain pinned · Scroll horizontally through work stages</span></div>
+   <div className="business-board-scroll" tabIndex={0} aria-label="Scrollable business operations board">
+    <div className="business-board">
+     <div className="business-board-head business-board-name-head">BUSINESS</div>
+     <div className="business-board-head business-board-control-head">CONTROLS</div>
+     {pipelineStatuses.map(s=><div className="business-board-head business-board-stage-head" key={s}>{s}</div>)}
+     {h.businesses.map(b=><React.Fragment key={b.id}>
+      <div className="business-board-name"><strong title={b.name}>{b.name}</strong></div>
+      <div className="business-board-actions"><span className="business-board-status">{b.status}</span><div className="business-board-action-buttons"><button type="button" onClick={()=>openTask(b.id,null)}>+ Task</button><button type="button" onClick={()=>{setView("setup");openBusiness(b)}}>⚙ Setup</button></div></div>
+      {pipelineStatuses.map(stage=><div className="business-board-lane" key={stage}>
+       {h.businessTasks.filter(t=>t.business_id===b.id&&t.status===stage).map(t=><div className="business-board-task" key={t.id}>
+        <button type="button" className="business-board-task-main" onClick={()=>openTask(b.id,t)}><strong>{t.title}</strong>{t.notes&&<span>{t.notes}</span>}</button>
+        <div className="business-board-task-actions"><button type="button" title="Edit task" onClick={()=>openTask(b.id,t)}>Edit</button>
+        {stage!=="Done"&&<button type="button" onClick={()=>void changeStage(t,pipelineStatuses[pipelineStatuses.indexOf(stage)+1])} title={"Move to next stage"}>Advance →</button>}</div>
+       </div>)}
+       <button type="button" className="business-board-add" onClick={()=>openTask(b.id,null,stage)}>+ Add task</button>
+      </div>)}
+     </React.Fragment>)}
+    </div>
+   </div>
+   {!h.loading&&!h.businesses.length&&<div className="console-empty">No businesses yet. Use <strong>+ Add business</strong> to begin.</div>}
+  </>:<div className="console-setup"><div className="console-setup-head"><div><h2>Business registry</h2><p>Configure businesses and direct their work.</p></div><button className="console-outline" type="button" onClick={()=>openBusiness(null)}>+ New business</button></div><div className="console-directory">{h.businesses.map(b=><div className="console-profile" key={b.id}><div className="console-profile-info"><strong>{b.name}</strong><span>{b.description||"No description"}</span><small>{b.status} · {h.businessTasks.filter(t=>t.business_id===b.id).length} tasks</small></div><button className="console-outline" type="button" onClick={()=>openTask(b.id,null)}>+ Task</button><button className="console-outline" type="button" onClick={()=>openBusiness(b)}>Configure</button></div>)}</div></div>}
+  {entry!==undefined&&<div className="console-overlay"><div className="console-dialog" role="dialog" aria-modal="true" aria-label="Business editor"><div className="console-dialog-head"><h2>{entry?"Configure business":"Add business"}</h2><button type="button" onClick={()=>setEntry(undefined)} aria-label="Close">×</button></div><form className="console-form" onSubmit={saveBusiness}><label>Business name<input required maxLength={100} value={form.name} onChange={e=>setForm(v=>({...v,name:e.target.value}))}/></label><label>Description<input maxLength={180} value={form.description} onChange={e=>setForm(v=>({...v,description:e.target.value}))}/></label><label>Status<select value={form.status} onChange={e=>setForm(v=>({...v,status:e.target.value as Business["status"]}))}>{["Planning","Active","Paused","Launched"].map(x=><option key={x}>{x}</option>)}</select></label><div className="console-form-actions">{entry&&<button className="console-danger" type="button" disabled={busy} onClick={()=>void removeBusiness()}>Delete business</button>}<button className="console-outline" type="button" onClick={()=>setEntry(undefined)}>Cancel</button><button className="console-primary" type="submit" disabled={busy}>Save to Supabase</button></div></form></div></div>}
+  {task!==undefined&&<div className="console-overlay"><div className="console-dialog" role="dialog" aria-modal="true" aria-label="Task editor"><div className="console-dialog-head"><h2>{task?"Edit task":"Add task"}</h2><button type="button" onClick={()=>setTask(undefined)} aria-label="Close">×</button></div><form className="console-form" onSubmit={saveTask}><label>Task title<input required maxLength={140} value={title} onChange={e=>setTitle(e.target.value)}/></label><label>Work stage<select value={status} onChange={e=>setStatus(e.target.value as BusinessTask["status"])}>{pipelineStatuses.map(s=><option key={s}>{s}</option>)}</select></label><label>Instructions<textarea rows={4} value={notes} onChange={e=>setNotes(e.target.value)}/></label><div className="console-form-actions">{task&&<button className="console-danger" type="button" disabled={busy} onClick={()=>void removeTask()}>Delete task</button>}<button className="console-outline" type="button" onClick={()=>setTask(undefined)}>Cancel</button><button className="console-primary" type="submit" disabled={busy}>Save to Supabase</button></div></form></div></div>}
  </section>;
 }
 
