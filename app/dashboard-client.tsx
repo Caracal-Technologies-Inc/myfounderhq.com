@@ -1,7 +1,8 @@
 "use client";
 import {useState} from "react";
 import ThemeToggle from "./theme-toggle";
-import {BusinessPlanner,EmployeePlanner} from "./live-planners";
+import {BusinessPlanner} from "./live-planners";
+import AIEmployeeDirectory from "./employee-directory";
 
 type Section="My Businesses"|"My Employees"|"Settings";
 const pages:Section[]=["My Businesses","My Employees","Settings"];
@@ -18,7 +19,7 @@ export default function Dashboard({email,userId,signOutAction}:{email?:string;us
   </aside>
   <main className="main">
    {page==="My Businesses"&&<BusinessPlanner userId={userId}/>}
-   {page==="My Employees"&&<EmployeePlanner userId={userId}/>}
+   {page==="My Employees"&&<AIEmployeeDirectory userId={userId}/>}
    {page==="Settings"&&<>
     <div className="eyebrow">Founder Operating System</div>
     <div className="header"><h1>Settings</h1><p>Your MyFounderHQ workspace.</p></div>
