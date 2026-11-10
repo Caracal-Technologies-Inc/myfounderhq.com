@@ -346,3 +346,8 @@ body{background:var(--bg);color:var(--text)}
 .settings-edit button:disabled{opacity:.5;cursor:wait}
 .settings-feedback{border:1px solid var(--line);background:var(--nav-active);border-radius:9px;padding:12px;color:var(--accent);font-size:12px}
 .settings-feedback-error{color:#ab3555;background:color-mix(in srgb,#ab3555 8%,var(--surface))}
+
+.settings-password-buttons{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:8px}
+.settings-reset-link{display:inline-block;margin-top:14px;padding:11px 15px;border-radius:9px;background:var(--accent);color:var(--accent-on);font-weight:700;text-decoration:none}
+.settings-reset-link:hover{filter:brightness(.95)}
+@media(max-width:560px){.settings-password-buttons{align-items:flex-start}.settings-section .row{flex-wrap:wrap}}
