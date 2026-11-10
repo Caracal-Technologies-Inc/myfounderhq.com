@@ -1,6 +1,6 @@
 "use client";
 import {useState} from "react";
-import ThemeToggle from "./theme-toggle";
+import AccountSettings from "./account-settings";
 import {BusinessPlanner} from "./live-planners";
 import AIEmployeeDirectory from "./employee-directory";
 
@@ -20,16 +20,7 @@ export default function Dashboard({email,userId,signOutAction}:{email?:string;us
   <main className="main">
    {page==="Businesses"&&<BusinessPlanner userId={userId}/>}
    {page==="Employees"&&<AIEmployeeDirectory userId={userId}/>}
-   {page==="Settings"&&<>
-    <div className="eyebrow">Founder Operating System</div>
-    <div className="header"><h1>Settings</h1><p>Your MyFounderHQ workspace.</p></div>
-    <div className="card">
-     <h3>Account</h3>
-     {email&&<div className="row"><strong>Signed in</strong><span>{email}</span></div>}
-     <div className="row"><strong>Appearance</strong><ThemeToggle userId={userId}/></div>
-     <div className="row settings-signout"><strong>Session</strong><form action={signOutAction}><button className="settings-signout-button" type="submit">Sign out</button></form></div>
-    </div>
-   </>}
+   {page==="Settings"&&<AccountSettings userId={userId} initialEmail={email} signOutAction={signOutAction}/>}
   </main>
  </div>;
 }
