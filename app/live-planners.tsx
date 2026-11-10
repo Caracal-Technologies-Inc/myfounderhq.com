@@ -81,7 +81,7 @@ function BusinessWorkspace({business,db,userId,tasks,onChange,reportError}:{busi
     const {data,error}=await db.from("hq_business_files").select("storage_path").eq("user_id",userId).eq("business_id",business.id).order("id").range(offset,offset+499);
     if(error)throw Error(error.message);
     const page=data||[];
-    paths.push(...page.map(row=>row.storage_path));
+    paths.push(...page.map((row:{storage_path:string})=>row.storage_path));
     if(page.length<500)break;
    }
    for(let i=0;i<paths.length;i+=100){
