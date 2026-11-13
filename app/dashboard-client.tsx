@@ -5,7 +5,7 @@ import AccountSettings from "./account-settings";
 import {BusinessPlanner} from "./live-planners";
 import AIEmployeeDirectory from "./employee-directory";
 
-type GroupKey="primary"|"financial"|"settings";
+type GroupKey="primary"|"financial"|"tools"|"settings";
 type Tab={id:string;tableId:string;sourceTitle:string};
 const BASE_ID="appXJH6TJLqOLvpWu";
 const TABS:Record<string,Tab>={
@@ -30,14 +30,15 @@ const TABS:Record<string,Tab>={
  "Password wallet":{id:"Password wallet",tableId:"tbliGacp6gStaSeax",sourceTitle:"Password wallet"},
  "Address wallet":{id:"Address wallet",tableId:"tblBtH9ynY6bdei2c",sourceTitle:"Address wallet"}
 };
-type Navigation={primary:string[];financial:string[];settings:string[];financialOpen:boolean;settingsOpen:boolean};
+type Navigation={primary:string[];financial:string[];tools:string[];settings:string[];financialOpen:boolean;toolsOpen:boolean;settingsOpen:boolean};
 const DEFAULT:Navigation={
  primary:["Businesses","Employees","Influencers","Social Media Agencies","News Agencies","Calendar"],
  financial:["Dashboard","Financial ledger","Profits","Expenditures","Investments","Rewards","Savings"],
+ tools:["ChatGPT Project Creator","Instagram Account Opener"],
  settings:["Settings","Paid Services","Bank accounts","Document wallet","Email wallet","Password wallet","Address wallet"],
- financialOpen:false,settingsOpen:false
+ financialOpen:false,toolsOpen:false,settingsOpen:false
 };
-const groupKeys:GroupKey[]=["primary","financial","settings"];
+const groupKeys:GroupKey[]=["primary","financial","tools","settings"];
 function normalize(saved:unknown,group:GroupKey):string[]{
  const canonical=DEFAULT[group];
  if(!Array.isArray(saved))return canonical.slice();
@@ -73,8 +74,9 @@ export default function Dashboard({email,userId,signOutAction}:{email?:string;us
    else if(data)setNav({
     primary:normalize(data.primary_tabs,"primary"),
     financial:normalize(data.financial_tabs,"financial"),
+    tools:normalize(data.tools_tabs,"tools"),
     settings:normalize(data.settings_tabs,"settings"),
-    financialOpen:!!data.financial_open,settingsOpen:!!data.settings_open
+    financialOpen:!!data.financial_open,toolsOpen:!!data.tools_open,settingsOpen:!!data.settings_open
    });
    setNavLoading(false);
   })();
@@ -86,16 +88,20 @@ export default function Dashboard({email,userId,signOutAction}:{email?:string;us
    user_id:userId,
    primary_tabs:next.primary,
    financial_tabs:next.financial,
+   tools_tabs:next.tools,
    settings_tabs:next.settings,
    financial_open:next.financialOpen,
+   tools_open:next.toolsOpen,
    settings_open:next.settingsOpen,
    updated_at:new Date().toISOString()
   },{onConflict:"user_id"});
   if(error)setNavError("Could not save navigation: "+error.message);
  },[db,userId]);
- const toggle=(group:"financial"|"settings")=>{
+ const openKey=(group:Exclude<GroupKey,"primary">):"financialOpen"|"toolsOpen"|"settingsOpen"=>group==="financial"?"financialOpen":group==="tools"?"toolsOpen":"settingsOpen";
+ const toggle=(group:Exclude<GroupKey,"primary">)=>{
   if(navLoading)return;
-  void save({...nav,[group==="financial"?"financialOpen":"settingsOpen"]:!nav[group==="financial"?"financialOpen":"settingsOpen"]});
+  const key=openKey(group);
+  void save({...nav,[key]:!nav[key]});
  };
  const move=(group:GroupKey,from:number,to:number)=>{
   const items=nav[group].slice();
@@ -105,17 +111,19 @@ export default function Dashboard({email,userId,signOutAction}:{email?:string;us
  };
  const changePage=(name:string,group:GroupKey)=>{
   setPage(name);
-  if(group==="financial"&&!nav.financialOpen)void save({...nav,financialOpen:true});
-  if(group==="settings"&&!nav.settingsOpen)void save({...nav,settingsOpen:true});
+  if(group!=="primary"&&!nav[openKey(group)])void save({...nav,[openKey(group)]:true});
  };
  const renderGroup=(group:GroupKey)=>{
   const list=nav[group];
+  const expandable=group!=="primary";
+  const expanded=expandable?nav[openKey(group)]:true;
+  const title=group==="financial"?"Financial Overview":group==="tools"?"Tools":"Settings";
   return <div className="hq-side-group" key={group}>
-   {group!=="primary"&&<button type="button" className="hq-group-toggle" aria-expanded={group==="financial"?nav.financialOpen:nav.settingsOpen} onClick={()=>toggle(group)}>
-    <span>{group==="financial"?"Financial Overview":"Settings"}</span>
-    <span aria-hidden="true">{(group==="financial"?nav.financialOpen:nav.settingsOpen)?"⌄":"›"}</span>
+   {expandable&&<button type="button" className="hq-group-toggle" aria-expanded={expanded} onClick={()=>toggle(group)}>
+    <span>{title}</span><span aria-hidden="true">{expanded?"⌄":"›"}</span>
    </button>}
-   {(group==="primary"||(group==="financial"?nav.financialOpen:nav.settingsOpen))&&<div className="hq-nav-items">
+   {expanded&&<div className="hq-nav-items">
+    {group==="tools"&&<div className="hq-tool-subheading">Bulk Tools</div>}
     {list.map((name,index)=><div className="hq-nav-row" key={name}
      draggable={reordering} onDragStart={e=>{if(!reordering)return;e.dataTransfer.effectAllowed="move";setDragging({group,name});}}
      onDragOver={e=>{if(reordering&&dragging?.group===group)e.preventDefault();}}
@@ -128,6 +136,7 @@ export default function Dashboard({email,userId,signOutAction}:{email?:string;us
   </div>;
  };
  const current=TABS[page];
+ const isTool=DEFAULT.tools.includes(page);
  return <div className="shell">
   <aside className="side hq-nav-side">
    <div className="logo">MY<span>FOUNDER</span>HQ™</div>
@@ -142,6 +151,7 @@ export default function Dashboard({email,userId,signOutAction}:{email?:string;us
    {page==="Businesses"?<BusinessPlanner userId={userId}/>
     :page==="Employees"?<AIEmployeeDirectory userId={userId}/>
     :page==="Settings"?<AccountSettings userId={userId} initialEmail={email} signOutAction={signOutAction}/>
+    :isTool?<section className="hq-source-page"><div className="eyebrow">AUTOMATION TOOLS</div><h1>{page}</h1><div className="hq-source-panel"><h2>Not configured</h2><p>This automation has not been built or connected. No accounts or projects have been created, and no browser actions are running.</p><p>When implemented, this tool can use an approved workflow with connected services and explicit execution results.</p></div></section>
     :current?<AirtableTab tab={current}/>:null}
   </main>
  </div>;
