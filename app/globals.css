@@ -417,3 +417,6 @@ body{background:var(--bg);color:var(--text)}
 .hq-source-panel a{display:inline-flex;gap:6px;margin-top:15px;padding:10px 14px;border-radius:8px;background:var(--accent);color:var(--accent-on);font-size:12px;font-weight:800;text-decoration:none}
 .hq-source-panel a:hover{filter:brightness(.95)}
 @media(max-width:540px){.hq-nav-side{min-height:0}.hq-nav-groups{flex-direction:row;overflow-x:auto;gap:14px;align-items:flex-start;padding-bottom:8px}.hq-side-group{min-width:170px;flex:0 0 auto}.hq-nav-items{display:flex;overflow:visible}.hq-nav-page{white-space:normal}.hq-nav-heading .label{display:block}.hq-nav-side .foot{display:none}}
+
+/* Bulk automation tools grouping, between finances and settings */
+.hq-tool-subheading{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:10px 12px 4px}
