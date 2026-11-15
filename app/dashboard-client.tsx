@@ -23,7 +23,7 @@ const TABS:Record<string,Tab>={
  "Rewards":{id:"Rewards",tableId:"tbl0wnOJDRk5QhWlm",sourceTitle:"Rewards"},
  "Savings":{id:"Savings",tableId:"tblQ0Sxj1V7Twb1oI",sourceTitle:"Savings"},
  "Account":{id:"Account",tableId:"tbljdlMb8UHmzDlzF",sourceTitle:"Settings"},
- "Paid Services":{id:"Paid Services",tableId:"tbll8GiW7upsptNY9",sourceTitle:"Paid Services"},
+ "Subscriptions":{id:"Subscriptions",tableId:"tbll8GiW7upsptNY9",sourceTitle:"Subscriptions"},
  "Bank accounts":{id:"Bank accounts",tableId:"tblgK1tloLFJuKtv2",sourceTitle:"Bank accounts"},
  "Document wallet":{id:"Document wallet",tableId:"tbl1FwjVuKykSlnPx",sourceTitle:"Document wallet"},
  "Email wallet":{id:"Email wallet",tableId:"tblb2bfTgKbl8oJwp",sourceTitle:"Email wallet"},
@@ -50,7 +50,7 @@ const sidebarIcons:Record<string,string>={
 function normalize(saved:unknown,group:GroupKey):string[]{
  const canonical=DEFAULT[group];
  if(!Array.isArray(saved))return canonical.slice();
- const known=saved.map(item=>group==="settings"&&item==="Settings"?"Account":item).filter((item):item is string=>typeof item==="string"&&canonical.includes(item));
+ const known=saved.map(item=>group==="settings"&&item==="Settings"?"Account":group==="settings"&&item==="Paid Services"?"Subscriptions":item).filter((item):item is string=>typeof item==="string"&&canonical.includes(item));
  return [...new Set(known),...canonical.filter(id=>!known.includes(id))];
 }
 function AirtableTab({tab}:{tab:Tab}){
@@ -134,7 +134,7 @@ export default function Dashboard({email,userId,signOutAction}:{email?:string;us
     <span className="hq-side-icon" aria-hidden="true">{sidebarIcons[title]}</span><span className="hq-side-text">{title}</span><span className="hq-side-chevron" aria-hidden="true">{expanded?"⌄":"›"}</span>
    </button>}
    {expanded&&<div className="hq-nav-items">
-    {group==="tools"&&<div className="hq-tool-subheading">Bulk Tools</div>}
+    {group==="tools"&&<div className="hq-tool-subheading">Bulk Creation</div>}
     {list.map((name,index)=><div className="hq-nav-row" key={name}
      draggable={reordering} onDragStart={e=>{if(!reordering)return;e.dataTransfer.effectAllowed="move";setDragging({group,name});}}
      onDragOver={e=>{if(reordering&&dragging?.group===group)e.preventDefault();}}
