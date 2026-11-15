@@ -35,7 +35,7 @@ const DEFAULT:Navigation={
  primary:["Businesses","Employees","Influencers","Social Media Agencies","News Agencies"],
  financial:["Financial ledger","Profits","Expenditures","Investments","Rewards","Savings"],
  tools:["ChatGPT Project Creator","Instagram Account Opener"],
- settings:["Account","Paid Services","Bank accounts","Document wallet","Email wallet","Password wallet","Address wallet"],
+ settings:["Account","Subscriptions","Bank accounts","Document wallet","Email wallet","Password wallet","Address wallet"],
  financialOpen:false,toolsOpen:false,settingsOpen:false
 };
 const groupKeys:GroupKey[]=["primary","financial","tools","settings"];
@@ -44,7 +44,7 @@ const sidebarIcons:Record<string,string>={
  "Financial Overview":"◫",Tools:"⌘",Settings:"⚙",Account:"♙",
  "Financial ledger":"▥",Profits:"↗",Expenditures:"↘",Investments:"◇",Rewards:"★",Savings:"▣",
  "ChatGPT Project Creator":"⊞","Instagram Account Opener":"◎",
- "Paid Services":"◈","Bank accounts":"▣","Document wallet":"▤","Email wallet":"✉",
+ "Subscriptions":"◈","Bank accounts":"▣","Document wallet":"▤","Email wallet":"✉",
  "Password wallet":"⚿","Address wallet":"⌖"
 };
 function normalize(saved:unknown,group:GroupKey):string[]{
