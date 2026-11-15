@@ -129,7 +129,7 @@ export default function AccountSettings({userId,initialEmail,signOutAction}:{use
 
  return <section className="settings-workspace">
   <div className="eyebrow">Founder Operating System</div>
-  <div className="header"><h1>Settings</h1></div>
+  <div className="header"><h1>Account</h1></div>
   <div className="card settings-section"><h3>User Profile</h3>
 
 
@@ -169,7 +169,6 @@ export default function AccountSettings({userId,initialEmail,signOutAction}:{use
    </form>}
    {mode!=="phone"&&feedback?.type==="success"&&feedback.field==="phone"&&message(feedback)}
 
-   <div className="row settings-signout"><strong>Session</strong><form action={signOutAction}><button className="settings-signout-button" type="submit">Sign out</button></form></div>
   </div>
   <FounderIdentity userId={userId}/>
   <div className="card settings-section"><h3>Preferences</h3><div className="row"><strong>Theme</strong><ThemeToggle userId={userId}/></div></div>
