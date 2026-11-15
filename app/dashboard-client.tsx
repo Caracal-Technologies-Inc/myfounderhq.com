@@ -69,8 +69,32 @@ export default function Dashboard({email,userId,signOutAction}:{email?:string;us
  const db=useMemo(()=>createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!),[]);
  const [page,setPage]=useState("Businesses");
  const [sidebarPinned,setSidebarPinned]=useState(false);
+ const [sidebarHovered,setSidebarHovered]=useState(false);
+ const [accountMenuOpen,setAccountMenuOpen]=useState(false);
+ const [profileName,setProfileName]=useState("");
+ const [avatarUrl,setAvatarUrl]=useState("");
+ const sidebarExpanded=sidebarPinned||sidebarHovered;
  useEffect(()=>{try{setSidebarPinned(window.localStorage.getItem("hq-sidebar-pinned")==="true");}catch{}},[]);
  const toggleSidebar=()=>setSidebarPinned(prev=>{const next=!prev;try{window.localStorage.setItem("hq-sidebar-pinned",String(next));}catch{}return next;});
+ useEffect(()=>{
+  let active=true;
+  void (async()=>{
+   const [auth,profile]=await Promise.all([
+    db.auth.getUser(),
+    db.from("hq_founder_profiles").select("full_name").eq("user_id",userId).maybeSingle()
+   ]);
+   if(!active)return;
+   setProfileName(profile.data?.full_name||auth.data.user?.user_metadata?.full_name||"");
+   const avatar=auth.data.user?.user_metadata?.avatar_url;
+   if(typeof avatar==="string"&&/^https:\/\//.test(avatar))setAvatarUrl(avatar);
+  })();
+  return()=>{active=false;};
+ },[db,userId]);
+ useEffect(()=>{
+  const onKey=(event:KeyboardEvent)=>{if(event.key==="Escape"){setAccountMenuOpen(false);setSidebarHovered(false);}};
+  window.addEventListener("keydown",onKey);
+  return()=>window.removeEventListener("keydown",onKey);
+ },[]);
  const [nav,setNav]=useState<Navigation>(DEFAULT);
  const [reordering,setReordering]=useState(false);
  const [navLoading,setNavLoading]=useState(true);
@@ -121,7 +145,7 @@ export default function Dashboard({email,userId,signOutAction}:{email?:string;us
   void save({...nav,[group]:items});
  };
  const changePage=(name:string,group:GroupKey)=>{
-  setPage(name);
+  setPage(name);setAccountMenuOpen(false);
   if(group!=="primary"&&!nav[openKey(group)])void save({...nav,[openKey(group)]:true});
  };
  const renderGroup=(group:GroupKey)=>{
@@ -148,15 +172,28 @@ export default function Dashboard({email,userId,signOutAction}:{email?:string;us
  };
  const current=TABS[page];
  const isTool=DEFAULT.tools.includes(page);
- return <div className={"shell hq-sidebar-shell"+(sidebarPinned?" sidebar-pinned":"")}>
-  <aside className="side hq-nav-side" aria-label="Sidebar">
+ return <div className={"shell hq-sidebar-shell"+(sidebarExpanded?" sidebar-expanded":"")+(sidebarPinned?" sidebar-pinned":"")}>
+  <aside className="side hq-nav-side" aria-label="Sidebar" onMouseEnter={()=>setSidebarHovered(true)} onMouseLeave={()=>{setSidebarHovered(false);setAccountMenuOpen(false);}}>
    <div className="hq-side-top"><div className="logo"><span className="hq-logo-mark" aria-hidden="true">M</span><span className="hq-brand-name">MY<span>FOUNDER</span>HQ™</span></div><button type="button" className="hq-sidebar-pin" onClick={toggleSidebar} title={sidebarPinned?"Collapse sidebar":"Keep sidebar expanded"} aria-label={sidebarPinned?"Collapse sidebar":"Keep sidebar expanded"} aria-pressed={sidebarPinned}>{sidebarPinned?"«":"☰"}</button></div>
    <div className="hq-nav-sidebar"><div className="hq-nav-heading"><div className="label hq-side-text">Dashboard</div><button className="hq-reorder-toggle" type="button" disabled={navLoading} onClick={()=>setReordering(x=>!x)} aria-pressed={reordering}>{reordering?"Done":"Reorder"}</button></div>
     {navError&&<p role="alert" className="hq-nav-error">{navError}</p>}
     {reordering&&<p className="hq-nav-help">Drag tabs or use the arrows to change their order.</p>}
     <nav className="hq-nav-groups" aria-label="Main navigation">{groupKeys.map(renderGroup)}</nav>
    </div>
-   <div className="foot">Caracal Technologies Inc.<br/>Version 0.1 • Initial foundation</div>
+   <div className="hq-sidebar-bottom">
+    {accountMenuOpen&&<div className="hq-account-popover" role="group" aria-label="Account menu">
+     <div className="hq-account-menu-heading"><strong>{profileName||"My account"}</strong><span>{email||"Signed-in account"}</span></div>
+     <button type="button" onClick={()=>{setPage("Account");setAccountMenuOpen(false);}}>♙ <span>Account</span></button>
+     <button type="button" onClick={()=>{setPage("Account");setAccountMenuOpen(false);}}>◐ <span>Appearance</span></button>
+     <div className="hq-account-menu-divider"/>
+     <form action={signOutAction}><button type="submit">⇥ <span>Log out</span></button></form>
+    </div>}
+    <button className="hq-profile-trigger" type="button" aria-expanded={accountMenuOpen} aria-haspopup="true" aria-label="Open account menu" title={profileName||email||"Account"} onClick={()=>{setAccountMenuOpen(v=>!v);setSidebarHovered(true);}}>
+      <span className="hq-profile-avatar">{avatarUrl?<img src={avatarUrl} alt="" referrerPolicy="no-referrer"/>:(profileName||email||"M").trim().slice(0,1).toUpperCase()}</span>
+      <span className="hq-profile-caption"><strong>{profileName||"My account"}</strong><small>{email||"Account settings"}</small></span>
+      <span className="hq-profile-dots" aria-hidden="true">⋯</span>
+    </button>
+   </div>
   </aside>
   <main className="main">
    {page==="Businesses"?<BusinessPlanner userId={userId}/>
