@@ -39,6 +39,14 @@ const DEFAULT:Navigation={
  financialOpen:false,toolsOpen:false,settingsOpen:false
 };
 const groupKeys:GroupKey[]=["primary","financial","tools","settings"];
+const sidebarIcons:Record<string,string>={
+ Businesses:"▦",Employees:"♙",Influencers:"✦","Social Media Agencies":"◎","News Agencies":"▤",
+ "Financial Overview":"◫",Tools:"⌘",Settings:"⚙",Account:"♙",
+ "Financial ledger":"▥",Profits:"↗",Expenditures:"↘",Investments:"◇",Rewards:"★",Savings:"▣",
+ "ChatGPT Project Creator":"⊞","Instagram Account Opener":"◎",
+ "Paid Services":"◈","Bank accounts":"▣","Document wallet":"▤","Email wallet":"✉",
+ "Password wallet":"⚿","Address wallet":"⌖"
+};
 function normalize(saved:unknown,group:GroupKey):string[]{
  const canonical=DEFAULT[group];
  if(!Array.isArray(saved))return canonical.slice();
@@ -60,6 +68,9 @@ function AirtableTab({tab}:{tab:Tab}){
 export default function Dashboard({email,userId,signOutAction}:{email?:string;userId:string;signOutAction:()=>Promise<void>}){
  const db=useMemo(()=>createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!),[]);
  const [page,setPage]=useState("Businesses");
+ const [sidebarPinned,setSidebarPinned]=useState(false);
+ useEffect(()=>{try{setSidebarPinned(window.localStorage.getItem("hq-sidebar-pinned")==="true");}catch{}},[]);
+ const toggleSidebar=()=>setSidebarPinned(prev=>{const next=!prev;try{window.localStorage.setItem("hq-sidebar-pinned",String(next));}catch{}return next;});
  const [nav,setNav]=useState<Navigation>(DEFAULT);
  const [reordering,setReordering]=useState(false);
  const [navLoading,setNavLoading]=useState(true);
@@ -119,8 +130,8 @@ export default function Dashboard({email,userId,signOutAction}:{email?:string;us
   const expanded=expandable?nav[openKey(group)]:true;
   const title=group==="financial"?"Financial Overview":group==="tools"?"Tools":"Settings";
   return <div className="hq-side-group" key={group}>
-   {expandable&&<button type="button" className="hq-group-toggle" aria-expanded={expanded} onClick={()=>toggle(group)}>
-    <span>{title}</span><span aria-hidden="true">{expanded?"⌄":"›"}</span>
+   {expandable&&<button type="button" className="hq-group-toggle" aria-expanded={expanded} onClick={()=>toggle(group)} title={title} aria-label={title}>
+    <span className="hq-side-icon" aria-hidden="true">{sidebarIcons[title]}</span><span className="hq-side-text">{title}</span><span className="hq-side-chevron" aria-hidden="true">{expanded?"⌄":"›"}</span>
    </button>}
    {expanded&&<div className="hq-nav-items">
     {group==="tools"&&<div className="hq-tool-subheading">Bulk Tools</div>}
@@ -129,7 +140,7 @@ export default function Dashboard({email,userId,signOutAction}:{email?:string;us
      onDragOver={e=>{if(reordering&&dragging?.group===group)e.preventDefault();}}
      onDrop={e=>{e.preventDefault();if(dragging?.group===group)move(group,list.indexOf(dragging.name),index);setDragging(null);}}
      onDragEnd={()=>setDragging(null)}>
-      <button type="button" className={"hq-nav-page "+(page===name?"active":"")} aria-current={page===name?"page":undefined} onClick={()=>changePage(name,group)}>{name}</button>
+      <button type="button" className={"hq-nav-page "+(page===name?"active":"")} aria-current={page===name?"page":undefined} onClick={()=>changePage(name,group)} title={name}><span className="hq-side-icon" aria-hidden="true">{sidebarIcons[name]||"•"}</span><span className="hq-side-text">{name}</span></button>
       {reordering&&<div className="hq-nav-move"><button type="button" title={"Move "+name+" up"} aria-label={"Move "+name+" up"} disabled={index===0} onClick={()=>move(group,index,index-1)}>↑</button><button type="button" title={"Move "+name+" down"} aria-label={"Move "+name+" down"} disabled={index===list.length-1} onClick={()=>move(group,index,index+1)}>↓</button></div>}
      </div>)}
    </div>}
@@ -137,10 +148,10 @@ export default function Dashboard({email,userId,signOutAction}:{email?:string;us
  };
  const current=TABS[page];
  const isTool=DEFAULT.tools.includes(page);
- return <div className="shell">
-  <aside className="side hq-nav-side">
-   <div className="logo">MY<span>FOUNDER</span>HQ™</div>
-   <div className="hq-nav-sidebar"><div className="hq-nav-heading"><div className="label">Dashboard</div><button className="hq-reorder-toggle" type="button" disabled={navLoading} onClick={()=>setReordering(x=>!x)} aria-pressed={reordering}>{reordering?"Done":"Reorder"}</button></div>
+ return <div className={"shell hq-sidebar-shell"+(sidebarPinned?" sidebar-pinned":"")}>
+  <aside className="side hq-nav-side" aria-label="Sidebar">
+   <div className="hq-side-top"><div className="logo"><span className="hq-logo-mark" aria-hidden="true">M</span><span className="hq-brand-name">MY<span>FOUNDER</span>HQ™</span></div><button type="button" className="hq-sidebar-pin" onClick={toggleSidebar} title={sidebarPinned?"Collapse sidebar":"Keep sidebar expanded"} aria-label={sidebarPinned?"Collapse sidebar":"Keep sidebar expanded"} aria-pressed={sidebarPinned}>{sidebarPinned?"«":"☰"}</button></div>
+   <div className="hq-nav-sidebar"><div className="hq-nav-heading"><div className="label hq-side-text">Dashboard</div><button className="hq-reorder-toggle" type="button" disabled={navLoading} onClick={()=>setReordering(x=>!x)} aria-pressed={reordering}>{reordering?"Done":"Reorder"}</button></div>
     {navError&&<p role="alert" className="hq-nav-error">{navError}</p>}
     {reordering&&<p className="hq-nav-help">Drag tabs or use the arrows to change their order.</p>}
     <nav className="hq-nav-groups" aria-label="Main navigation">{groupKeys.map(renderGroup)}</nav>
