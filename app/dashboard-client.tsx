@@ -173,7 +173,7 @@ export default function Dashboard({email,userId,signOutAction}:{email?:string;us
  const current=TABS[page];
  const isTool=DEFAULT.tools.includes(page);
  return <div className={"shell hq-sidebar-shell"+(sidebarExpanded?" sidebar-expanded":"")+(sidebarPinned?" sidebar-pinned":"")}>
-  <aside className="side hq-nav-side" aria-label="Sidebar" onMouseEnter={()=>setSidebarHovered(true)} onMouseLeave={()=>{setSidebarHovered(false);setAccountMenuOpen(false);}}>
+  <aside className="side hq-nav-side" aria-label="Sidebar" onMouseEnter={()=>setSidebarHovered(true)} onMouseLeave={()=>{if(!accountMenuOpen)setSidebarHovered(false);}}>
    <div className="hq-side-top"><div className="logo"><span className="hq-logo-mark" aria-hidden="true">M</span><span className="hq-brand-name">MY<span>FOUNDER</span>HQ™</span></div><button type="button" className="hq-sidebar-pin" onClick={toggleSidebar} title={sidebarPinned?"Collapse sidebar":"Keep sidebar expanded"} aria-label={sidebarPinned?"Collapse sidebar":"Keep sidebar expanded"} aria-pressed={sidebarPinned}>{sidebarPinned?"«":"☰"}</button></div>
    <div className="hq-nav-sidebar"><div className="hq-nav-heading"><div className="label hq-side-text">Dashboard</div><button className="hq-reorder-toggle" type="button" disabled={navLoading} onClick={()=>setReordering(x=>!x)} aria-pressed={reordering}>{reordering?"Done":"Reorder"}</button></div>
     {navError&&<p role="alert" className="hq-nav-error">{navError}</p>}
@@ -195,7 +195,7 @@ export default function Dashboard({email,userId,signOutAction}:{email?:string;us
     </button>
    </div>
   </aside>
-  <main className="main">
+  <main className="main" onClick={()=>{if(accountMenuOpen){setAccountMenuOpen(false);setSidebarHovered(false);}}}>
    {page==="Businesses"?<BusinessPlanner userId={userId}/>
     :page==="Employees"?<AIEmployeeDirectory userId={userId}/>
     :page==="Account"?<AccountSettings userId={userId} initialEmail={email} signOutAction={signOutAction}/>
