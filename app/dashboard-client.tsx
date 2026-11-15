@@ -22,7 +22,7 @@ const TABS:Record<string,Tab>={
  "Investments":{id:"Investments",tableId:"tblW1WOGjSlI0S6be",sourceTitle:"Investments"},
  "Rewards":{id:"Rewards",tableId:"tbl0wnOJDRk5QhWlm",sourceTitle:"Rewards"},
  "Savings":{id:"Savings",tableId:"tblQ0Sxj1V7Twb1oI",sourceTitle:"Savings"},
- "Settings":{id:"Settings",tableId:"tbljdlMb8UHmzDlzF",sourceTitle:"Settings"},
+ "Account":{id:"Account",tableId:"tbljdlMb8UHmzDlzF",sourceTitle:"Settings"},
  "Paid Services":{id:"Paid Services",tableId:"tbll8GiW7upsptNY9",sourceTitle:"Paid Services"},
  "Bank accounts":{id:"Bank accounts",tableId:"tblgK1tloLFJuKtv2",sourceTitle:"Bank accounts"},
  "Document wallet":{id:"Document wallet",tableId:"tbl1FwjVuKykSlnPx",sourceTitle:"Document wallet"},
@@ -32,17 +32,17 @@ const TABS:Record<string,Tab>={
 };
 type Navigation={primary:string[];financial:string[];tools:string[];settings:string[];financialOpen:boolean;toolsOpen:boolean;settingsOpen:boolean};
 const DEFAULT:Navigation={
- primary:["Businesses","Employees","Influencers","Social Media Agencies","News Agencies","Calendar"],
- financial:["Dashboard","Financial ledger","Profits","Expenditures","Investments","Rewards","Savings"],
+ primary:["Businesses","Employees","Influencers","Social Media Agencies","News Agencies"],
+ financial:["Financial ledger","Profits","Expenditures","Investments","Rewards","Savings"],
  tools:["ChatGPT Project Creator","Instagram Account Opener"],
- settings:["Settings","Paid Services","Bank accounts","Document wallet","Email wallet","Password wallet","Address wallet"],
+ settings:["Account","Paid Services","Bank accounts","Document wallet","Email wallet","Password wallet","Address wallet"],
  financialOpen:false,toolsOpen:false,settingsOpen:false
 };
 const groupKeys:GroupKey[]=["primary","financial","tools","settings"];
 function normalize(saved:unknown,group:GroupKey):string[]{
  const canonical=DEFAULT[group];
  if(!Array.isArray(saved))return canonical.slice();
- const known=saved.filter((item):item is string=>typeof item==="string"&&canonical.includes(item));
+ const known=saved.map(item=>group==="settings"&&item==="Settings"?"Account":item).filter((item):item is string=>typeof item==="string"&&canonical.includes(item));
  return [...new Set(known),...canonical.filter(id=>!known.includes(id))];
 }
 function AirtableTab({tab}:{tab:Tab}){
@@ -140,7 +140,7 @@ export default function Dashboard({email,userId,signOutAction}:{email?:string;us
  return <div className="shell">
   <aside className="side hq-nav-side">
    <div className="logo">MY<span>FOUNDER</span>HQ™</div>
-   <div className="hq-nav-sidebar"><div className="hq-nav-heading"><div className="label">Command Center</div><button className="hq-reorder-toggle" type="button" disabled={navLoading} onClick={()=>setReordering(x=>!x)} aria-pressed={reordering}>{reordering?"Done":"Reorder"}</button></div>
+   <div className="hq-nav-sidebar"><div className="hq-nav-heading"><div className="label">Dashboard</div><button className="hq-reorder-toggle" type="button" disabled={navLoading} onClick={()=>setReordering(x=>!x)} aria-pressed={reordering}>{reordering?"Done":"Reorder"}</button></div>
     {navError&&<p role="alert" className="hq-nav-error">{navError}</p>}
     {reordering&&<p className="hq-nav-help">Drag tabs or use the arrows to change their order.</p>}
     <nav className="hq-nav-groups" aria-label="Main navigation">{groupKeys.map(renderGroup)}</nav>
@@ -150,7 +150,7 @@ export default function Dashboard({email,userId,signOutAction}:{email?:string;us
   <main className="main">
    {page==="Businesses"?<BusinessPlanner userId={userId}/>
     :page==="Employees"?<AIEmployeeDirectory userId={userId}/>
-    :page==="Settings"?<AccountSettings userId={userId} initialEmail={email} signOutAction={signOutAction}/>
+    :page==="Account"?<AccountSettings userId={userId} initialEmail={email} signOutAction={signOutAction}/>
     :isTool?<section className="hq-source-page"><div className="eyebrow">AUTOMATION TOOLS</div><h1>{page}</h1><div className="hq-source-panel"><h2>Not configured</h2><p>This automation has not been built or connected. No accounts or projects have been created, and no browser actions are running.</p><p>When implemented, this tool can use an approved workflow with connected services and explicit execution results.</p></div></section>
     :current?<AirtableTab tab={current}/>:null}
   </main>
