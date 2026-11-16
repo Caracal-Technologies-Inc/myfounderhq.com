@@ -197,15 +197,7 @@ class _HqMainScreenState extends State<HqMainScreen> {
       case 'Employees':return const HqEmployeesPage();
       case 'Settings':return const HqSettingsPage();
       case 'Flutter Building Blocks':return const HqComponentCataloguePage();
-      default:return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-        Text(_page,style:Theme.of(context).textTheme.headlineMedium),
-        const SizedBox(height:16),
-        const HqInfoCard(
-          title:'Not built in Flutter yet',
-          subtitle:'The existing production MyFounderHQ remains available. This screen will be assembled after its component blueprint and interactions are approved.',
-          icon:Icons.construction_outlined,
-        ),
-      ]);
+      default:return HqBlueprintPage(screenKey:_page);
     }
   }
   @override
