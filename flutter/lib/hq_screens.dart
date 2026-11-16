@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'hq_blocks.dart';
+import 'blueprint_renderer.dart';
 
 final _db = Supabase.instance.client;
 
@@ -280,4 +281,46 @@ class HqSettingsPage extends StatelessWidget {
     const SizedBox(height:12),
     const Text('Additional account controls remain on the existing production web app until specified and tested for Flutter.'),
   ]);
+}
+
+class HqBlueprintPage extends StatelessWidget {
+  const HqBlueprintPage({super.key,required this.screenKey});
+  final String screenKey;
+  @override
+  Widget build(BuildContext context) => FutureBuilder<Map<String,dynamic>?>(
+    future:_db.from('hq_flutter_screen_blueprints')
+      .select('screen_name,blueprint,status')
+      .eq('owner_id',_db.auth.currentUser!.id)
+      .eq('app_key','myfounderhq')
+      .eq('screen_key',screenKey)
+      .maybeSingle(),
+    builder:(context,snapshot){
+      if(snapshot.hasError)return Text('Could not load blueprint: ${snapshot.error}');
+      if(!snapshot.hasData){
+        if(snapshot.connectionState!=ConnectionState.done){
+          return const Center(child:CircularProgressIndicator());
+        }
+        return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+          Text(screenKey,style:Theme.of(context).textTheme.headlineMedium),
+          const SizedBox(height:16),
+          const HqInfoCard(
+            title:'Awaiting an approved screen manual',
+            subtitle:'No Flutter page is rendered until its component blueprint, interactions, and data bindings are approved.',
+            icon:Icons.article_outlined,
+          ),
+        ]);
+      }
+      final row=snapshot.data!;
+      final status=row['status']?.toString()??'Draft';
+      if(!['Approved','Implemented','Tested'].contains(status)){
+        return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+          Text(screenKey,style:Theme.of(context).textTheme.headlineMedium),
+          Text('Blueprint is $status. Not rendered as a finished page.'),
+        ]);
+      }
+      final data=row['blueprint'];
+      if(data is! Map)return const Text('Invalid page blueprint.');
+      return HqBlueprintRenderer(blueprint:Map<String,dynamic>.from(data));
+    },
+  );
 }
