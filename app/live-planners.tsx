@@ -140,6 +140,7 @@ function BusinessWorkspace({business,db,userId,tasks,onChange,reportError}:{busi
  };
  return <article className="hq-business-item">
   <div className="hq-business-name"><h2>{business.name}</h2><button className="hq-remove-business" type="button" disabled={removingBusiness||fileBusy||taskBusy} onClick={()=>void removeBusiness()}>{removingBusiness?"Removing…":"Remove business"}</button></div>
+  {business.name.toLowerCase().replace(/[^a-z]/g,"").includes("ultimatefan")&&<p><a className="action" href="/ultimate-fan" target="_blank" rel="noopener noreferrer" style={{display:"inline-block",textDecoration:"none"}}>Open Ultimate Fan app preview</a></p>}
   <section className="hq-business-tasks" aria-label={"Tasks for "+business.name}>
    <div className="hq-business-panel-head"><h3>Business tasks</h3><button type="button" onClick={()=>editTask(null)}>+ Add task</button></div>
    {tasks.length===0?<p className="hq-business-muted">No tasks yet</p>:<div className="hq-task-list">{tasks.map(t=><div className="hq-task-line" key={t.id}><div><strong>{t.title}</strong><small>{t.status}</small></div><button type="button" onClick={()=>editTask(t)}>Edit</button><button type="button" className="hq-task-remove" onClick={()=>{if(window.confirm("Delete "+t.title+"?")){void (async()=>{const {error}=await db.from("hq_business_tasks").delete().eq("id",t.id).eq("user_id",userId);if(error)reportError(error.message);else await onChange();})();}}}>Remove</button></div>)}</div>}
