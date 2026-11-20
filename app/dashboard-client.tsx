@@ -124,16 +124,22 @@ export default function Dashboard({email,userId,signOutAction}:{email?:string;us
  const saveLauncher=useCallback(async(shortcuts:string[],opened:boolean)=>{
   setLauncherError("");
   setSavingLauncher(true);
-  const {error}=await db.from("hq_launcher_preferences").upsert({
-   user_id:userId,app_shortcuts:shortcuts,context_sidebar_open:opened,updated_at:new Date().toISOString()
-  },{onConflict:"user_id"});
-  if(error)setLauncherError("Couldn't save launcher settings: "+error.message);
-  setSavingLauncher(false);
+  try{
+   const {error}=await db.from("hq_launcher_preferences").upsert({
+    user_id:userId,app_shortcuts:shortcuts,context_sidebar_open:opened,updated_at:new Date().toISOString()
+   },{onConflict:"user_id"});
+   if(error)setLauncherError("Couldn't save launcher settings: "+error.message);
+  }catch(error){
+   setLauncherError("Couldn't save launcher settings. Please try again.");
+  }finally{
+   setSavingLauncher(false);
+  }
  },[db,userId]);
  const toggleContext=()=>{
-  if(launcherLoading||savingLauncher)return;
+  // The menu must respond immediately, independently of Supabase latency.
   const opened=!contextOpen;
   setContextOpen(opened);
+  setAccountMenuOpen(false);
   void saveLauncher(appShortcuts,opened);
  };
  const activateApp=(app:string)=>{
