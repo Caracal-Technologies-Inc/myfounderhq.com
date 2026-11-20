@@ -566,3 +566,7 @@ body{background:var(--bg);color:var(--text)}
 .hq-sidebar-shell .hq-nav-side{overflow-x:hidden!important;overflow-y:auto!important}
 .hq-sidebar-shell .hq-nav-sidebar{flex:1 0 auto!important;min-height:0}
 .hq-sidebar-shell .hq-profile-trigger{width:100%;min-width:0}
+
+/* Resources is the second subsection of Tools, not a separate top-level category. */
+.hq-sidebar-shell .hq-side-group:has(.hq-tool-subheading):has(+ .hq-side-group .hq-tool-subheading){margin-bottom:-10px}
+.hq-sidebar-shell .hq-tool-subheading{font-size:11px;letter-spacing:.04em;font-weight:800;opacity:.8}
