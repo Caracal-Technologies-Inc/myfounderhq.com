@@ -143,7 +143,7 @@ export default function Dashboard({email,userId,signOutAction}:{email?:string;us
   if(!contextOpen)void saveLauncher(appShortcuts,true);
  };
  const addShortcut=()=>{
-  const name=newAppName.trim().replace(/\\s+/g," ").slice(0,56);
+  const name=newAppName.trim().replace(/\s+/g," ").slice(0,56);
   if(!name||appShortcuts.includes(name))return;
   const next=[...appShortcuts,name];
   setAppShortcuts(next);
@@ -169,7 +169,7 @@ export default function Dashboard({email,userId,signOutAction}:{email?:string;us
   if(app==="MyFounderHQ")return "M";
   if(app==="Media Magic")return "▶";
   if(app==="POD Magic")return "▦";
-  return app.split(/\\s+/).map(word=>word[0]||"").join("").slice(0,2).toUpperCase();
+  return app.split(/\s+/).map(word=>word[0]||"").join("").slice(0,2).toUpperCase();
  };
  useEffect(()=>{
   let active=true;
