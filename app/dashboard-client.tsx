@@ -5,7 +5,7 @@ import AccountSettings from "./account-settings";
 import {BusinessPlanner} from "./live-planners";
 import AIEmployeeDirectory from "./employee-directory";
 
-type GroupKey="primary"|"financial"|"tools"|"settings";
+type GroupKey="primary"|"financial"|"tools"|"resources"|"settings";
 type Tab={id:string;tableId:string;sourceTitle:string};
 const BASE_ID="appXJH6TJLqOLvpWu";
 const TABS:Record<string,Tab>={
@@ -30,20 +30,22 @@ const TABS:Record<string,Tab>={
  "Password wallet":{id:"Password wallet",tableId:"tbliGacp6gStaSeax",sourceTitle:"Password wallet"},
  "Address wallet":{id:"Address wallet",tableId:"tblBtH9ynY6bdei2c",sourceTitle:"Address wallet"}
 };
-type Navigation={primary:string[];financial:string[];tools:string[];settings:string[];financialOpen:boolean;toolsOpen:boolean;settingsOpen:boolean};
+type Navigation={primary:string[];financial:string[];tools:string[];resources:string[];settings:string[];financialOpen:boolean;toolsOpen:boolean;settingsOpen:boolean};
 const DEFAULT:Navigation={
  primary:["Businesses","Employees","Influencers","Social Media Agencies","News Agencies"],
  financial:["Financial ledger","Profits","Expenditures","Investments","Rewards","Savings"],
- tools:["ChatGPT Project Creator","Instagram Account Opener"],
+ tools:["ChatGPT Project Creator","Instagram Account Opener","POD Merch Generator"],
+ resources:["Short Form Video Templates","Reference App(s) Screenshot Library"],
  settings:["Account","Subscriptions","Bank accounts","Document wallet","Email wallet","Password wallet","Address wallet"],
  financialOpen:false,toolsOpen:false,settingsOpen:false
 };
-const groupKeys:GroupKey[]=["primary","financial","tools","settings"];
+const groupKeys:GroupKey[]=["primary","financial","tools","resources","settings"];
 const sidebarIcons:Record<string,string>={
  Businesses:"▦",Employees:"♙",Influencers:"✦","Social Media Agencies":"◎","News Agencies":"▤",
  "Financial Overview":"◫",Tools:"⌘",Settings:"⚙",Account:"♙",
  "Financial ledger":"▥",Profits:"↗",Expenditures:"↘",Investments:"◇",Rewards:"★",Savings:"▣",
- "ChatGPT Project Creator":"⊞","Instagram Account Opener":"◎",
+ "ChatGPT Project Creator":"⊞","Instagram Account Opener":"◎","POD Merch Generator":"▧",
+ "Short Form Video Templates":"▣","Reference App(s) Screenshot Library":"▤",
  "Subscriptions":"◈","Bank accounts":"▣","Document wallet":"▤","Email wallet":"✉",
  "Password wallet":"⚿","Address wallet":"⌖"
 };
@@ -105,6 +107,7 @@ export default function Dashboard({email,userId,signOutAction}:{email?:string;us
     primary:normalize(data.primary_tabs,"primary"),
     financial:normalize(data.financial_tabs,"financial"),
     tools:normalize(data.tools_tabs,"tools"),
+    resources:normalize(data.tools_resources_tabs,"resources"),
     settings:normalize(data.settings_tabs,"settings"),
     financialOpen:!!data.financial_open,toolsOpen:!!data.tools_open,settingsOpen:!!data.settings_open
    });
@@ -119,6 +122,7 @@ export default function Dashboard({email,userId,signOutAction}:{email?:string;us
    primary_tabs:next.primary,
    financial_tabs:next.financial,
    tools_tabs:next.tools,
+   tools_resources_tabs:next.resources,
    settings_tabs:next.settings,
    financial_open:next.financialOpen,
    tools_open:next.toolsOpen,
@@ -138,11 +142,12 @@ export default function Dashboard({email,userId,signOutAction}:{email?:string;us
  };
  const renderGroup=(group:GroupKey)=>{
   const list=nav[group];
-  const title=group==="financial"?"Financial Overview":group==="tools"?"Tools":"Settings";
+  const title=group==="financial"?"Financial Overview":group==="tools"||group==="resources"?"Tools":"Settings";
   return <div className="hq-side-group" key={group}>
-   {group!=="primary"&&<div className="hq-group-heading"><span className="hq-side-icon" aria-hidden="true">{sidebarIcons[title]}</span><span className="hq-side-text">{title}</span></div>}
+   {group!=="primary"&&group!=="resources"&&<div className="hq-group-heading"><span className="hq-side-icon" aria-hidden="true">{sidebarIcons[title]}</span><span className="hq-side-text">{title}</span></div>}
    <div className="hq-nav-items">
     {group==="tools"&&<div className="hq-tool-subheading">Bulk Creation</div>}
+    {group==="resources"&&<div className="hq-tool-subheading">Resources</div>}
     {list.map((name,index)=><div className="hq-nav-row" key={name}
      draggable={reordering} onDragStart={e=>{if(!reordering)return;e.dataTransfer.effectAllowed="move";setDragging({group,name});}}
      onDragOver={e=>{if(reordering&&dragging?.group===group)e.preventDefault();}}
@@ -156,6 +161,7 @@ export default function Dashboard({email,userId,signOutAction}:{email?:string;us
  };
  const current=TABS[page];
  const isTool=DEFAULT.tools.includes(page);
+ const isResource=DEFAULT.resources.includes(page);
  return <div className="shell hq-sidebar-shell sidebar-expanded sidebar-pinned">
   <aside className="side hq-nav-side" aria-label="Sidebar">
    <div className="hq-side-top"><div className="logo"><span className="hq-logo-mark" aria-hidden="true">M</span><span className="hq-brand-name">MY<span>FOUNDER</span>HQ™</span></div></div>
@@ -183,7 +189,7 @@ export default function Dashboard({email,userId,signOutAction}:{email?:string;us
    {page==="Businesses"?<BusinessPlanner userId={userId}/>
     :page==="Employees"?<AIEmployeeDirectory userId={userId}/>
     :page==="Account"?<AccountSettings userId={userId} initialEmail={email} signOutAction={signOutAction}/>
-    :isTool?<section className="hq-source-page"><div className="eyebrow">AUTOMATION TOOLS</div><h1>{page}</h1><div className="hq-source-panel"><h2>Not configured</h2><p>This automation has not been built or connected. No accounts or projects have been created, and no browser actions are running.</p><p>When implemented, this tool can use an approved workflow with connected services and explicit execution results.</p></div></section>
+    :(isTool||isResource)?<section className="hq-source-page"><div className="eyebrow">{isResource?"RESOURCES":"BULK CREATION"}</div><h1>{page}</h1><div className="hq-source-panel"><h2>Not configured</h2><p>{isResource?"This resource library has not been configured yet. No screenshots or templates are shown.":"This automation has not been built or connected. No accounts or projects have been created, and no browser actions are running."}</p></div></section>
     :current?<AirtableTab tab={current}/>:null}
   </main>
  </div>;
