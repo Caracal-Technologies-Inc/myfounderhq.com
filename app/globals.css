@@ -530,3 +530,39 @@ body{background:var(--bg);color:var(--text)}
  .hq-sidebar-shell .hq-account-popover{left:16px;bottom:12px}
  .hq-sidebar-shell .main{width:100%;min-width:0;padding:20px 16px}
 }
+
+/* Account menu stays in sidebar flow. Never overlay the workspace. */
+.hq-sidebar-shell .hq-nav-side .hq-sidebar-bottom{
+  position:relative!important;
+  bottom:auto!important;
+  left:auto!important;
+  margin-top:auto;
+  min-width:0;
+  width:100%;
+  padding:12px 0 16px;
+  border-top:1px solid var(--line);
+  background:var(--sidebar);
+  z-index:auto;
+}
+.hq-sidebar-shell .hq-account-popover,
+.hq-sidebar-shell.sidebar-expanded .hq-account-popover{
+  position:static!important;
+  inset:auto!important;
+  left:auto!important;
+  right:auto!important;
+  bottom:auto!important;
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0;
+  margin:0 0 10px;
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:6px;
+  box-shadow:none!important;
+  background:var(--surface);
+}
+.hq-sidebar-shell .hq-account-popover button{min-height:40px}
+.hq-sidebar-shell .hq-account-menu-heading span{overflow-wrap:anywhere}
+.hq-sidebar-shell .hq-nav-side{overflow-x:hidden!important;overflow-y:auto!important}
+.hq-sidebar-shell .hq-nav-sidebar{flex:1 0 auto!important;min-height:0}
+.hq-sidebar-shell .hq-profile-trigger{width:100%;min-width:0}
