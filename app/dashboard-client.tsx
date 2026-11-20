@@ -70,6 +70,14 @@ function AirtableTab({tab}:{tab:Tab}){
 export default function Dashboard({email,userId,signOutAction}:{email?:string;userId:string;signOutAction:()=>Promise<void>}){
  const db=useMemo(()=>createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!),[]);
  const [page,setPage]=useState("Businesses");
+ const [activeApp,setActiveApp]=useState("MyFounderHQ");
+ const [appShortcuts,setAppShortcuts]=useState<string[]>(["MyFounderHQ","Media Magic","POD Magic"]);
+ const [contextOpen,setContextOpen]=useState(true);
+ const [launcherLoading,setLauncherLoading]=useState(true);
+ const [launcherError,setLauncherError]=useState("");
+ const [manageLauncher,setManageLauncher]=useState(false);
+ const [newAppName,setNewAppName]=useState("");
+ const [savingLauncher,setSavingLauncher]=useState(false);
   const [accountMenuOpen,setAccountMenuOpen]=useState(false);
  const [profileName,setProfileName]=useState("");
  const [avatarUrl,setAvatarUrl]=useState("");
@@ -97,6 +105,72 @@ export default function Dashboard({email,userId,signOutAction}:{email?:string;us
  const [navLoading,setNavLoading]=useState(true);
  const [navError,setNavError]=useState("");
  const [dragging,setDragging]=useState<{group:GroupKey;name:string}|null>(null);
+ useEffect(()=>{
+  let active=true;
+  void (async()=>{
+   const {data,error}=await db.from("hq_launcher_preferences")
+    .select("app_shortcuts,context_sidebar_open").eq("user_id",userId).maybeSingle();
+   if(!active)return;
+   if(error)setLauncherError("Couldn't load your app shortcuts: "+error.message);
+   else if(data){
+    const saved=Array.isArray(data.app_shortcuts)?data.app_shortcuts.filter((a:unknown):a is string=>typeof a==="string"&&a.length>0):[];
+    setAppShortcuts(["MyFounderHQ",...new Set(saved.filter(a=>a!=="MyFounderHQ"))]);
+    setContextOpen(data.context_sidebar_open!==false);
+   }
+   setLauncherLoading(false);
+  })();
+  return()=>{active=false;};
+ },[db,userId]);
+ const saveLauncher=useCallback(async(shortcuts:string[],opened:boolean)=>{
+  setLauncherError("");
+  setSavingLauncher(true);
+  const {error}=await db.from("hq_launcher_preferences").upsert({
+   user_id:userId,app_shortcuts:shortcuts,context_sidebar_open:opened,updated_at:new Date().toISOString()
+  },{onConflict:"user_id"});
+  if(error)setLauncherError("Couldn't save launcher settings: "+error.message);
+  setSavingLauncher(false);
+ },[db,userId]);
+ const toggleContext=()=>{
+  if(launcherLoading||savingLauncher)return;
+  const opened=!contextOpen;
+  setContextOpen(opened);
+  void saveLauncher(appShortcuts,opened);
+ };
+ const activateApp=(app:string)=>{
+  setActiveApp(app);
+  setAccountMenuOpen(false);
+  setContextOpen(true);
+  if(!contextOpen)void saveLauncher(appShortcuts,true);
+ };
+ const addShortcut=()=>{
+  const name=newAppName.trim().replace(/\\s+/g," ").slice(0,56);
+  if(!name||appShortcuts.includes(name))return;
+  const next=[...appShortcuts,name];
+  setAppShortcuts(next);
+  setNewAppName("");
+  void saveLauncher(next,contextOpen);
+ };
+ const removeShortcut=(app:string)=>{
+  if(app==="MyFounderHQ")return;
+  const next=appShortcuts.filter(name=>name!==app);
+  setAppShortcuts(next);
+  if(activeApp===app)setActiveApp("MyFounderHQ");
+  void saveLauncher(next,contextOpen);
+ };
+ const shiftShortcut=(app:string,direction:-1|1)=>{
+  const old=appShortcuts.indexOf(app), target=old+direction;
+  if(old<1||target<1||target>=appShortcuts.length)return;
+  const next=appShortcuts.slice();
+  [next[old],next[target]]=[next[target],next[old]];
+  setAppShortcuts(next);
+  void saveLauncher(next,contextOpen);
+ };
+ const appMonogram=(app:string)=>{
+  if(app==="MyFounderHQ")return "M";
+  if(app==="Media Magic")return "▶";
+  if(app==="POD Magic")return "▦";
+  return app.split(/\\s+/).map(word=>word[0]||"").join("").slice(0,2).toUpperCase();
+ };
  useEffect(()=>{
   let active=true;
   void (async()=>{
@@ -162,35 +236,83 @@ export default function Dashboard({email,userId,signOutAction}:{email?:string;us
  const current=TABS[page];
  const isTool=DEFAULT.tools.includes(page);
  const isResource=DEFAULT.resources.includes(page);
- return <div className="shell hq-sidebar-shell sidebar-expanded sidebar-pinned">
-  <aside className="side hq-nav-side" aria-label="Sidebar">
-   <div className="hq-side-top"><div className="logo"><span className="hq-logo-mark" aria-hidden="true">M</span><span className="hq-brand-name">MY<span>FOUNDER</span>HQ™</span></div></div>
-   <div className="hq-nav-sidebar"><div className="hq-nav-heading"><div className="label hq-side-text">Dashboard</div><button className="hq-reorder-toggle" type="button" disabled={navLoading} onClick={()=>setReordering(x=>!x)} aria-pressed={reordering}>{reordering?"Done":"Reorder"}</button></div>
-    {navError&&<p role="alert" className="hq-nav-error">{navError}</p>}
-    {reordering&&<p className="hq-nav-help">Drag tabs or use the arrows to change their order.</p>}
-    <nav className="hq-nav-groups" aria-label="Main navigation">{groupKeys.map(renderGroup)}</nav>
+ return <div className="hq-dual-shell">
+  <nav className="hq-app-rail" aria-label="Application launcher">
+   <button className="hq-rail-control" type="button" title={contextOpen?"Hide menu":"Show menu"} aria-label={contextOpen?"Hide navigation menu":"Show navigation menu"} aria-expanded={contextOpen} onClick={toggleContext}>
+    <span aria-hidden="true">☷</span>
+   </button>
+   <div className="hq-rail-divider"/>
+   <div className="hq-app-shortcuts">
+    {appShortcuts.map(app=><button key={app} type="button" className={"hq-app-shortcut"+(activeApp===app?" selected":"")} onClick={()=>activateApp(app)} title={app} aria-label={"Open "+app} aria-current={activeApp===app?"page":undefined}>
+      <span aria-hidden="true">{appMonogram(app)}</span>
+    </button>)}
    </div>
-   <div className="hq-sidebar-bottom">
-    {accountMenuOpen&&<div className="hq-account-popover" role="group" aria-label="Account menu">
-     <div className="hq-account-menu-heading"><strong>{profileName||"My account"}</strong><span>{email||"Signed-in account"}</span></div>
-     <button type="button" onClick={()=>{setPage("Account");setAccountMenuOpen(false);}}>♙ <span>Account</span></button>
-     <button type="button" onClick={()=>{setPage("Account");setAccountMenuOpen(false);}}>◐ <span>Appearance</span></button>
-     <div className="hq-account-menu-divider"/>
-     <form action={signOutAction}><button type="submit">⇥ <span>Log out</span></button></form>
-    </div>}
-    <button className="hq-profile-trigger" type="button" aria-expanded={accountMenuOpen} aria-haspopup="true" aria-label="Open account menu" title={profileName||email||"Account"} onClick={()=>{setAccountMenuOpen(v=>!v);}}>
+   <div className="hq-rail-bottom">
+    <button type="button" className="hq-rail-control" title="Customize apps" aria-label="Customize app shortcuts" onClick={()=>setManageLauncher(true)}><span aria-hidden="true">＋</span></button>
+    <button type="button" className="hq-rail-control" title="Account" aria-label="Open account settings" onClick={()=>{setActiveApp("MyFounderHQ");setPage("Account");setContextOpen(true);}}><span aria-hidden="true">⚙</span></button>
+   </div>
+  </nav>
+  {contextOpen&&<aside className="hq-context-sidebar" aria-label={activeApp+" navigation"}>
+   <div className="hq-context-header">
+    <div className="hq-context-title"><span className="hq-context-mark">{appMonogram(activeApp)}</span><strong>{activeApp}</strong></div>
+    <button className="hq-context-close" type="button" title="Collapse sidebar" aria-label="Collapse contextual sidebar" onClick={toggleContext}>‹</button>
+   </div>
+   {activeApp==="MyFounderHQ"?<>
+    <div className="hq-nav-sidebar"><div className="hq-nav-heading"><div className="label hq-side-text">Dashboard</div><button className="hq-reorder-toggle" type="button" disabled={navLoading} onClick={()=>setReordering(x=>!x)} aria-pressed={reordering}>{reordering?"Done":"Reorder"}</button></div>
+     {navError&&<p role="alert" className="hq-nav-error">{navError}</p>}
+     {reordering&&<p className="hq-nav-help">Drag tabs or use the arrows to change their order.</p>}
+     <nav className="hq-nav-groups" aria-label="MyFounderHQ pages">{groupKeys.map(renderGroup)}</nav>
+    </div>
+    <div className="hq-context-footer">
+     {accountMenuOpen&&<div className="hq-account-popover" role="group" aria-label="Account menu">
+      <div className="hq-account-menu-heading"><strong>{profileName||"My account"}</strong><span>{email||"Signed-in account"}</span></div>
+      <button type="button" onClick={()=>{setPage("Account");setAccountMenuOpen(false);}}>♙ <span>Account</span></button>
+      <button type="button" onClick={()=>{setPage("Account");setAccountMenuOpen(false);}}>◐ <span>Appearance</span></button>
+      <div className="hq-account-menu-divider"/>
+      <form action={signOutAction}><button type="submit">⇥ <span>Log out</span></button></form>
+     </div>}
+     <button className="hq-profile-trigger" type="button" aria-expanded={accountMenuOpen} aria-label="Open account menu" onClick={()=>setAccountMenuOpen(v=>!v)}>
       <span className="hq-profile-avatar">{avatarUrl?<img src={avatarUrl} alt="" referrerPolicy="no-referrer"/>:(profileName||email||"M").trim().slice(0,1).toUpperCase()}</span>
       <span className="hq-profile-caption"><strong>{profileName||"My account"}</strong><small>{email||"Account settings"}</small></span>
       <span className="hq-profile-dots" aria-hidden="true">⋯</span>
-    </button>
-   </div>
-  </aside>
-  <main className="main" onClick={()=>{if(accountMenuOpen){setAccountMenuOpen(false);}}}>
-   {page==="Businesses"?<BusinessPlanner userId={userId}/>
+     </button>
+    </div>
+   </>:<div className="hq-app-context-content">
+    <div className="label">Workspace</div>
+    <button type="button" className="hq-nav-page active" aria-current="page">{activeApp} Overview</button>
+    <p>This app workspace has not been connected. The shortcut is saved, but no automation or application functions have been enabled.</p>
+   </div>}
+  </aside>}
+  <main className="hq-dual-main" onClick={()=>{if(accountMenuOpen)setAccountMenuOpen(false);}}>
+   {activeApp!=="MyFounderHQ"?<section className="hq-source-page">
+     <div className="eyebrow">APPLICATION WORKSPACE</div><h1>{activeApp}</h1>
+     <div className="hq-source-panel"><h2>Workspace not configured</h2><p>This application has been added to your launcher. Its pages, integrations, and execution workflows have not been connected yet.</p></div>
+    </section>
+    :page==="Businesses"?<BusinessPlanner userId={userId}/>
     :page==="Employees"?<AIEmployeeDirectory userId={userId}/>
     :page==="Account"?<AccountSettings userId={userId} initialEmail={email} signOutAction={signOutAction}/>
     :(isTool||isResource)?<section className="hq-source-page"><div className="eyebrow">{isResource?"RESOURCES":"BULK CREATION"}</div><h1>{page}</h1><div className="hq-source-panel"><h2>Not configured</h2><p>{isResource?"This resource library has not been configured yet. No screenshots or templates are shown.":"This automation has not been built or connected. No accounts or projects have been created, and no browser actions are running."}</p></div></section>
     :current?<AirtableTab tab={current}/>:null}
   </main>
+  {manageLauncher&&<div className="hq-launcher-dialog-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)setManageLauncher(false);}}>
+   <section className="hq-launcher-dialog" role="dialog" aria-modal="true" aria-labelledby="launcher-dialog-title">
+    <div className="hq-launcher-dialog-head"><h2 id="launcher-dialog-title">Customize app launcher</h2><button type="button" aria-label="Close" onClick={()=>setManageLauncher(false)}>✕</button></div>
+    <p>Choose apps to show on the icon rail. Changes are saved to your MyFounderHQ account.</p>
+    <div className="hq-launcher-manage-list">
+     {appShortcuts.map((app,index)=><div key={app} className="hq-launcher-manage-row"><span className="hq-context-mark">{appMonogram(app)}</span><strong>{app}</strong>
+       <button type="button" aria-label={"Move "+app+" up"} disabled={savingLauncher||index<2} onClick={()=>shiftShortcut(app,-1)}>↑</button>
+       <button type="button" aria-label={"Move "+app+" down"} disabled={savingLauncher||index===0||index===appShortcuts.length-1} onClick={()=>shiftShortcut(app,1)}>↓</button>
+       <button type="button" aria-label={"Remove "+app} disabled={savingLauncher||app==="MyFounderHQ"} onClick={()=>removeShortcut(app)}>Remove</button>
+      </div>)}
+    </div>
+    <form onSubmit={e=>{e.preventDefault();addShortcut();}} className="hq-launcher-add-form">
+     <label htmlFor="launcher-app-name">Add app shortcut</label>
+     <div><input id="launcher-app-name" autoFocus value={newAppName} maxLength={56} placeholder="e.g. Ultimate Fan" onChange={e=>setNewAppName(e.target.value)}/>
+     <button type="submit" disabled={savingLauncher||!newAppName.trim()||appShortcuts.includes(newAppName.trim())}>Add</button></div>
+    </form>
+    {launcherError&&<p className="hq-nav-error" role="alert">{launcherError}</p>}
+    <button type="button" className="hq-launcher-done" onClick={()=>setManageLauncher(false)}>Done</button>
+   </section>
+  </div>}
  </div>;
 }
