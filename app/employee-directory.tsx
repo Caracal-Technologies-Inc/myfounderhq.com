@@ -7,7 +7,7 @@ type Template={id:number;department_id:number;name:string;sort_order:number};
 type Instance={id:string;template_id:number;business_id:string|null;status:string;is_live:boolean;execution_status:string};
 type Task={id:string;instance_id:string;event_type:string;title:string;detail:string;status:string;created_at:string};
 type Connector={id:string;instance_id:string;provider:string;state:string;notes:string};
-export default function AIEmployeeDirectory({userId,onOpenScreenshotLibrary}:{userId:string;onOpenScreenshotLibrary?:()=>void}){
+export default function AIEmployeeDirectory({userId,onOpenScreenshotLibrary,onOpenWebsiteLibrary}:{userId:string;onOpenScreenshotLibrary?:()=>void;onOpenWebsiteLibrary?:()=>void}){
  const db=useMemo(()=>createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!),[]);
  const [departments,setDepartments]=useState<Department[]>([]);
  const [templates,setTemplates]=useState<Template[]>([]);
@@ -119,6 +119,7 @@ export default function AIEmployeeDirectory({userId,onOpenScreenshotLibrary}:{us
    <div className="console-dialog ai-simple-modal" role="dialog" aria-modal="true" aria-label={selected.name}>
     <div className="console-dialog-head"><div><h2>{selected.name}</h2><p>{departments.find(d=>d.id===selected.department_id)?.name}</p></div><button type="button" onClick={()=>setSelected(null)} aria-label="Close">×</button></div>
     {selected.name==="Mobile App Developer"&&<div className="ai-reference-link"><div><strong>App Screenshot Library</strong><p>Reference screens from your Galaxy S9 and other devices, stored in Supabase. Captures require the Acer ADB utility or manual upload.</p></div><button type="button" onClick={()=>{setSelected(null);onOpenScreenshotLibrary?.();}} disabled={!onOpenScreenshotLibrary}>Open library</button></div>}
+    {(selected.name==="Web Developer"||selected.name==="UI/UX Designer")&&<div className="ai-reference-link"><div><strong>Website Screenshot Library</strong><p>Website interface screenshots, desktop/mobile viewports, and page references stored securely in Supabase.</p></div><button type="button" disabled={!onOpenWebsiteLibrary} onClick={()=>{setSelected(null);onOpenWebsiteLibrary?.();}}>Open library</button></div>}
     <div className="ai-simple-modal-tabs" role="tablist" aria-label="Employee controls">
      <button type="button" role="tab" aria-selected={listTab==="tasks"} className={listTab==="tasks"?"selected":""} onClick={()=>setListTab("tasks")}>Tasks</button>
      <button type="button" role="tab" aria-selected={listTab==="connectors"} className={listTab==="connectors"?"selected":""} onClick={()=>setListTab("connectors")}>Connectors</button>
