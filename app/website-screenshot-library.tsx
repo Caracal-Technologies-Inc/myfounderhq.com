@@ -29,7 +29,7 @@ export default function WebsiteScreenshotLibrary({userId}:{userId:string}){
  const [loading,setLoading]=useState(true);
  const [busy,setBusy]=useState(false);
  const selected=websites.find(x=>x.id===selectedId);
- const matches=shots.filter(s=>s.website_id===selectedId&&(viewport==="All"||true))
+ const matches=shots.filter(s=>s.website_id===selectedId)
    .filter(s=>!query||[s.screen_name,s.original_name,s.viewport,s.page_url].some(t=>t.toLowerCase().includes(query.toLowerCase())));
  const load=useCallback(async()=>{
   const [w,s]=await Promise.all([
