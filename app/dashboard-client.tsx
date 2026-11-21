@@ -302,7 +302,7 @@ export default function Dashboard({email,userId,signOutAction}:{email?:string;us
      <div className="hq-source-panel"><h2>Workspace not configured</h2><p>This application has been added to your launcher. Its pages, integrations, and execution workflows have not been connected yet.</p></div>
     </section>
     :page==="Businesses"?<BusinessPlanner userId={userId}/>
-    :page==="Employees"?<AIEmployeeDirectory userId={userId}/>
+    :page==="Employees"?<AIEmployeeDirectory userId={userId} onOpenScreenshotLibrary={()=>{setActiveApp("Media Magic");setMediaPage("App Screenshot Library");setContextOpen(true);}}/>
     :page==="Account"?<AccountSettings userId={userId} initialEmail={email} signOutAction={signOutAction}/>
     :page==="Reference App(s) Screenshot Library"?<AppScreenshotLibrary userId={userId}/>
     :(isTool||isResource)?<section className="hq-source-page"><div className="eyebrow">{isResource?"RESOURCES":"BULK CREATION"}</div><h1>{page}</h1><div className="hq-source-panel"><h2>Not configured</h2><p>{isResource?"This resource library has not been configured yet. No screenshots or templates are shown.":"This automation has not been built or connected. No accounts or projects have been created, and no browser actions are running."}</p></div></section>
