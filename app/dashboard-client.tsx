@@ -5,6 +5,7 @@ import AccountSettings from "./account-settings";
 import {BusinessPlanner} from "./live-planners";
 import AIEmployeeDirectory from "./employee-directory";
 import AppScreenshotLibrary from "./app-screenshot-library";
+import WebsiteScreenshotLibrary from "./website-screenshot-library";
 
 type GroupKey="primary"|"financial"|"tools"|"resources"|"settings";
 type Tab={id:string;tableId:string;sourceTitle:string};
@@ -36,7 +37,7 @@ const DEFAULT:Navigation={
  primary:["Businesses","Employees","Influencers","Social Media Agencies","News Agencies"],
  financial:["Financial ledger","Profits","Expenditures","Investments","Rewards","Savings"],
  tools:["ChatGPT Project Creator","Instagram Account Opener","POD Merch Generator"],
- resources:["Short Form Video Templates","Reference App(s) Screenshot Library"],
+ resources:["Short Form Video Templates","Reference App(s) Screenshot Library","Reference Website(s) Screenshot Library"],
  settings:["Account","Subscriptions","Bank accounts","Document wallet","Email wallet","Password wallet","Address wallet"],
  financialOpen:false,toolsOpen:false,settingsOpen:false
 };
@@ -46,7 +47,7 @@ const sidebarIcons:Record<string,string>={
  "Financial Overview":"◫",Tools:"⌘",Settings:"⚙",Account:"♙",
  "Financial ledger":"▥",Profits:"↗",Expenditures:"↘",Investments:"◇",Rewards:"★",Savings:"▣",
  "ChatGPT Project Creator":"⊞","Instagram Account Opener":"◎","POD Merch Generator":"▧",
- "Short Form Video Templates":"▣","Reference App(s) Screenshot Library":"▤",
+ "Short Form Video Templates":"▣","Reference App(s) Screenshot Library":"▤","Reference Website(s) Screenshot Library":"▧",
  "Subscriptions":"◈","Bank accounts":"▣","Document wallet":"▤","Email wallet":"✉",
  "Password wallet":"⚿","Address wallet":"⌖"
 };
@@ -287,8 +288,9 @@ export default function Dashboard({email,userId,signOutAction}:{email?:string;us
     </div>
    </>:activeApp==="Media Magic"?<div className="hq-app-context-content">
     <div className="label">Media Magic</div>
-    <button type="button" className="hq-nav-page active" aria-current="page" onClick={()=>setMediaPage("App Screenshot Library")}><span className="hq-side-icon" aria-hidden="true">▤</span><span>App Screenshot Library</span></button>
-    <p>Reference apps and captured screens, stored privately in Supabase.</p>
+    <button type="button" className={"hq-nav-page"+(mediaPage==="App Screenshot Library"?" active":"")} aria-current={mediaPage==="App Screenshot Library"?"page":undefined} onClick={()=>setMediaPage("App Screenshot Library")}><span className="hq-side-icon" aria-hidden="true">▤</span><span>App Screenshot Library</span></button>
+    <button type="button" className={"hq-nav-page"+(mediaPage==="Website Screenshot Library"?" active":"")} aria-current={mediaPage==="Website Screenshot Library"?"page":undefined} onClick={()=>setMediaPage("Website Screenshot Library")}><span className="hq-side-icon" aria-hidden="true">▧</span><span>Website Screenshot Library</span></button>
+    <p>Reference collections and screenshots, stored privately in Supabase.</p>
    </div>:<div className="hq-app-context-content">
     <div className="label">Workspace</div>
     <button type="button" className="hq-nav-page active" aria-current="page">{activeApp} Overview</button>
@@ -296,15 +298,16 @@ export default function Dashboard({email,userId,signOutAction}:{email?:string;us
    </div>}
   </aside>}
   <main className="hq-dual-main" onClick={()=>{if(accountMenuOpen)setAccountMenuOpen(false);}}>
-   {activeApp==="Media Magic"?<AppScreenshotLibrary userId={userId}/>
+   {activeApp==="Media Magic"?(mediaPage==="Website Screenshot Library"?<WebsiteScreenshotLibrary userId={userId}/>:<AppScreenshotLibrary userId={userId}/>)
     :activeApp!=="MyFounderHQ"?<section className="hq-source-page">
      <div className="eyebrow">APPLICATION WORKSPACE</div><h1>{activeApp}</h1>
      <div className="hq-source-panel"><h2>Workspace not configured</h2><p>This application has been added to your launcher. Its pages, integrations, and execution workflows have not been connected yet.</p></div>
     </section>
     :page==="Businesses"?<BusinessPlanner userId={userId}/>
-    :page==="Employees"?<AIEmployeeDirectory userId={userId} onOpenScreenshotLibrary={()=>{setActiveApp("Media Magic");setMediaPage("App Screenshot Library");setContextOpen(true);}}/>
+    :page==="Employees"?<AIEmployeeDirectory userId={userId} onOpenScreenshotLibrary={()=>{setActiveApp("Media Magic");setMediaPage("App Screenshot Library");setContextOpen(true);}} onOpenWebsiteLibrary={()=>{setActiveApp("Media Magic");setMediaPage("Website Screenshot Library");setContextOpen(true);}}/>
     :page==="Account"?<AccountSettings userId={userId} initialEmail={email} signOutAction={signOutAction}/>
     :page==="Reference App(s) Screenshot Library"?<AppScreenshotLibrary userId={userId}/>
+    :page==="Reference Website(s) Screenshot Library"?<WebsiteScreenshotLibrary userId={userId}/>
     :(isTool||isResource)?<section className="hq-source-page"><div className="eyebrow">{isResource?"RESOURCES":"BULK CREATION"}</div><h1>{page}</h1><div className="hq-source-panel"><h2>Not configured</h2><p>{isResource?"This resource library has not been configured yet. No screenshots or templates are shown.":"This automation has not been built or connected. No accounts or projects have been created, and no browser actions are running."}</p></div></section>
     :current?<AirtableTab tab={current}/>:null}
   </main>
