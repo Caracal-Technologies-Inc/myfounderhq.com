@@ -4,6 +4,7 @@ import {createBrowserClient} from "@supabase/ssr";
 import AccountSettings from "./account-settings";
 import {BusinessPlanner} from "./live-planners";
 import AIEmployeeDirectory from "./employee-directory";
+import AppScreenshotLibrary from "./app-screenshot-library";
 
 type GroupKey="primary"|"financial"|"tools"|"resources"|"settings";
 type Tab={id:string;tableId:string;sourceTitle:string};
@@ -71,6 +72,7 @@ export default function Dashboard({email,userId,signOutAction}:{email?:string;us
  const db=useMemo(()=>createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!),[]);
  const [page,setPage]=useState("Businesses");
  const [activeApp,setActiveApp]=useState("MyFounderHQ");
+ const [mediaPage,setMediaPage]=useState("App Screenshot Library");
  const [appShortcuts,setAppShortcuts]=useState<string[]>(["MyFounderHQ","Media Magic","POD Magic"]);
  const [contextOpen,setContextOpen]=useState(true);
  const [launcherLoading,setLauncherLoading]=useState(true);
@@ -283,20 +285,26 @@ export default function Dashboard({email,userId,signOutAction}:{email?:string;us
       <span className="hq-profile-dots" aria-hidden="true">⋯</span>
      </button>
     </div>
-   </>:<div className="hq-app-context-content">
+   </>:activeApp==="Media Magic"?<div className="hq-app-context-content">
+    <div className="label">Media Magic</div>
+    <button type="button" className="hq-nav-page active" aria-current="page" onClick={()=>setMediaPage("App Screenshot Library")}><span className="hq-side-icon" aria-hidden="true">▤</span><span>App Screenshot Library</span></button>
+    <p>Reference apps and captured screens, stored privately in Supabase.</p>
+   </div>:<div className="hq-app-context-content">
     <div className="label">Workspace</div>
     <button type="button" className="hq-nav-page active" aria-current="page">{activeApp} Overview</button>
     <p>This app workspace has not been connected. The shortcut is saved, but no automation or application functions have been enabled.</p>
    </div>}
   </aside>}
   <main className="hq-dual-main" onClick={()=>{if(accountMenuOpen)setAccountMenuOpen(false);}}>
-   {activeApp!=="MyFounderHQ"?<section className="hq-source-page">
+   {activeApp==="Media Magic"?<AppScreenshotLibrary userId={userId}/>
+    :activeApp!=="MyFounderHQ"?<section className="hq-source-page">
      <div className="eyebrow">APPLICATION WORKSPACE</div><h1>{activeApp}</h1>
      <div className="hq-source-panel"><h2>Workspace not configured</h2><p>This application has been added to your launcher. Its pages, integrations, and execution workflows have not been connected yet.</p></div>
     </section>
     :page==="Businesses"?<BusinessPlanner userId={userId}/>
     :page==="Employees"?<AIEmployeeDirectory userId={userId}/>
     :page==="Account"?<AccountSettings userId={userId} initialEmail={email} signOutAction={signOutAction}/>
+    :page==="Reference App(s) Screenshot Library"?<AppScreenshotLibrary userId={userId}/>
     :(isTool||isResource)?<section className="hq-source-page"><div className="eyebrow">{isResource?"RESOURCES":"BULK CREATION"}</div><h1>{page}</h1><div className="hq-source-panel"><h2>Not configured</h2><p>{isResource?"This resource library has not been configured yet. No screenshots or templates are shown.":"This automation has not been built or connected. No accounts or projects have been created, and no browser actions are running."}</p></div></section>
     :current?<AirtableTab tab={current}/>:null}
   </main>
