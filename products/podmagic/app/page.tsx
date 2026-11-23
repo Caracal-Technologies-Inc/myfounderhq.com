@@ -40,6 +40,8 @@ export default function Home(){
  const [filter,setFilter]=useState("");
  const [sidebarOpen,setSidebarOpen]=useState(true);
  const [rightSidebarOpen,setRightSidebarOpen]=useState(true);
+ const [profileOpen,setProfileOpen]=useState(false);
+ const [settingsOpen,setSettingsOpen]=useState(false);
 
 
  useEffect(()=>{if(!db){setAuthLoading(false);return;}let active=true;
@@ -101,6 +103,12 @@ export default function Home(){
   <nav className="pod-icon-rail" aria-label="Application launcher">
    <button type="button" className="pod-rail-icon pod-menu-icon" onClick={()=>setSidebarOpen(open=>!open)} aria-expanded={sidebarOpen} title={sidebarOpen?"Hide left menu":"Show left menu"} aria-label={sidebarOpen?"Hide left menu":"Show left menu"}>☷</button>
    <div className="pod-rail-separator"/>
+   <div className="pod-rail-end">
+    <button type="button" className="pod-rail-icon pod-settings-icon" title="Settings" aria-label="Open settings" onClick={()=>{setProfileOpen(false);setSettingsOpen(true);}}>⚙</button>
+    <button type="button" className="pod-profile-circle" title="Account menu" aria-label="Open account menu" aria-expanded={profileOpen} onClick={()=>setProfileOpen(open=>!open)}>
+     {(user.email||"P").slice(0,1).toUpperCase()}
+    </button>
+   </div>
   </nav>
   {sidebarOpen&&<aside className="pod-left-context" aria-label="POD Magic navigation">
    <div className="pod-context-head">
@@ -109,10 +117,29 @@ export default function Home(){
    </div>
    <div className="pod-context-empty" aria-label="POD Magic navigation items"/>
   </aside>}
+  {profileOpen&&<>
+   <button type="button" className="pod-profile-dismiss" aria-label="Close account menu" onClick={()=>setProfileOpen(false)}/>
+   <div className="pod-profile-popover" role="group" aria-label="POD Magic account menu">
+    <div className="pod-profile-menu-head"><span className="pod-profile-menu-avatar">{(user.email||"P").slice(0,1).toUpperCase()}</span><span><strong>{user.email?.split("@")[0]||"My account"}</strong><small>{user.email}</small></span></div>
+    <div className="pod-profile-menu-divider"/>
+    <button type="button" onClick={()=>{setProfileOpen(false);setSettingsOpen(true);}}><span aria-hidden="true">⚙</span> Settings</button>
+    <button type="button" onClick={()=>{setProfileOpen(false);void signOut();}}><span aria-hidden="true">⇥</span> Log out</button>
+   </div>
+  </>}
   <main className="studio-main">
    <header className="topbar pod-empty-header"><span/><div className="topbar-right"><button type="button" className="pod-right-toggle" onClick={()=>setRightSidebarOpen(open=>!open)} title={rightSidebarOpen?"Hide right sidebar":"Show right sidebar"} aria-label={rightSidebarOpen?"Hide right sidebar":"Show right sidebar"} aria-expanded={rightSidebarOpen}>◧</button></div></header>
    <div className="pod-blank-workspace" aria-label="Empty POD Magic workspace"/>
   </main>
+  {settingsOpen&&<div className="pod-settings-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)setSettingsOpen(false);}}>
+   <section className="pod-settings-dialog" role="dialog" aria-modal="true" aria-labelledby="pod-settings-title">
+    <div className="pod-settings-dialog-head"><h2 id="pod-settings-title">Settings</h2><button type="button" onClick={()=>setSettingsOpen(false)} aria-label="Close settings">×</button></div>
+    <h3>Account</h3>
+    <div className="pod-setting-row"><span>Email</span><strong>{user.email}</strong></div>
+    <div className="pod-setting-row"><span>Signed in</span><strong>POD Magic</strong></div>
+    <p>Account credentials are shared with MyFounderHQ. Additional POD Magic settings will appear here as features are added.</p>
+    <button type="button" className="pod-signout-action" onClick={()=>{setSettingsOpen(false);void signOut();}}>Log out</button>
+   </section>
+  </div>}
   {rightSidebarOpen&&<aside className="pod-right-context" aria-label="Empty contextual sidebar">
    <div className="pod-right-head"><span/><button className="pod-collapse-button" type="button" onClick={()=>setRightSidebarOpen(false)} aria-label="Collapse right sidebar" title="Collapse right sidebar">›</button></div>
    <div className="pod-right-body"/>
