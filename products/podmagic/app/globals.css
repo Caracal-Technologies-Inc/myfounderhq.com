@@ -77,3 +77,25 @@
 .pod-setting-row strong{max-width:70%;text-align:right;overflow-wrap:anywhere;font-weight:650}
 .pod-settings-dialog p{font-size:12px}
 .pod-signout-action{margin-top:14px;border:1px solid var(--line);border-radius:8px;padding:10px 14px;background:var(--soft);color:var(--purple);font-size:12px;font-weight:800}
+
+/* Context sidebar: hover preview overlays the canvas; pinned sidebar docks in layout. */
+.pod-triple-shell{position:relative}
+.pod-triple-shell .pod-left-context.pod-context-floating{
+ position:absolute;left:60px;top:0;bottom:0;height:100dvh;
+ width:258px;max-width:calc(100vw - 60px);z-index:18;
+ box-shadow:10px 0 24px rgba(26,15,51,.12);
+}
+.pod-pin-button{
+ flex:0 0 32px;width:32px;height:32px;display:grid;place-items:center;
+ border:0;border-radius:8px;background:transparent;color:var(--muted);
+ cursor:pointer;
+}
+.pod-pin-button:hover,.pod-pin-button.pinned{background:var(--soft);color:var(--purple)}
+.pod-pin-button:focus-visible{outline:2px solid var(--purple);outline-offset:2px}
+@media(max-width:680px){
+ .pod-triple-shell .pod-left-context.pod-context-floating{left:54px;width:min(255px,calc(100vw - 54px))}
+ .pod-triple-shell .pod-left-context:not(.pod-context-floating){
+  position:fixed;left:54px;top:0;bottom:0;
+  width:min(255px,calc(100vw - 54px));max-width:calc(100vw - 54px);z-index:18;
+ }
+}
