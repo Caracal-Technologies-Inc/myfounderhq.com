@@ -101,10 +101,9 @@ export default function Home(){
  </div>;
  return <div className="pod-triple-shell">
   <nav className="pod-icon-rail" aria-label="Application launcher">
-   <button type="button" className="pod-rail-icon pod-menu-icon" onClick={()=>setSidebarOpen(open=>!open)} aria-expanded={sidebarOpen} title={sidebarOpen?"Hide left menu":"Show left menu"} aria-label={sidebarOpen?"Hide left menu":"Show left menu"}>☷</button>
+   <button type="button" className="pod-rail-icon pod-menu-icon" onClick={()=>setSidebarOpen(open=>!open)} aria-expanded={sidebarOpen} title={sidebarOpen?"Hide left menu":"Show left menu"} aria-label={sidebarOpen?"Hide left menu":"Show left menu"}><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7"/><path d="M5 9v12h14V9"/><path d="M9 21v-7h6v7"/></svg></button>
    <div className="pod-rail-separator"/>
    <div className="pod-rail-end">
-    <button type="button" className="pod-rail-icon pod-settings-icon" title="Settings" aria-label="Open settings" onClick={()=>{setProfileOpen(false);setSettingsOpen(true);}}>⚙</button>
     <button type="button" className="pod-profile-circle" title="Account menu" aria-label="Open account menu" aria-expanded={profileOpen} onClick={()=>setProfileOpen(open=>!open)}>
      {(user.email||"P").slice(0,1).toUpperCase()}
     </button>
