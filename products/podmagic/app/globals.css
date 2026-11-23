@@ -44,3 +44,8 @@
 @media(max-width:1250px){.pod-right-context{flex-basis:215px;width:215px}.pod-left-context{flex-basis:225px;width:225px}.pod-triple-shell .page-content{padding:30px 25px 75px}}
 @media(max-width:980px){.pod-right-context{position:fixed;right:0;top:0;bottom:0;z-index:14;width:265px;flex-basis:265px;box-shadow:-12px 0 30px rgba(20,10,40,.09)}.pod-left-context{flex-basis:235px;width:235px}}
 @media(max-width:680px){.pod-icon-rail{flex-basis:54px;width:54px;padding:9px 5px}.pod-left-context{position:fixed;top:0;bottom:0;left:54px;width:min(255px,calc(100vw - 54px));z-index:13;box-shadow:12px 0 30px rgba(20,10,40,.1)}.pod-right-context{width:min(265px,calc(100vw - 54px))}.pod-triple-shell .topbar{min-height:62px;flex-basis:62px}.pod-triple-shell .page-content{padding:24px 16px 60px}.pod-triple-shell .topbar-right{font-size:10px}}
+
+/* Intentionally blank product shell: no welcome dashboard, overview, or placeholder cards. */
+.pod-triple-shell .pod-blank-workspace{flex:1 1 auto;min-height:0;width:100%;background:var(--bg)}
+.pod-triple-shell>.studio-main{background:var(--bg)}
+.pod-triple-shell .pod-right-body{flex:1 1 auto}
