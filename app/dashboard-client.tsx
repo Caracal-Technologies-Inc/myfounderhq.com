@@ -291,6 +291,10 @@ export default function Dashboard({email,userId,signOutAction}:{email?:string;us
     <button type="button" className={"hq-nav-page"+(mediaPage==="App Screenshot Library"?" active":"")} aria-current={mediaPage==="App Screenshot Library"?"page":undefined} onClick={()=>setMediaPage("App Screenshot Library")}><span className="hq-side-icon" aria-hidden="true">▤</span><span>App Screenshot Library</span></button>
     <button type="button" className={"hq-nav-page"+(mediaPage==="Website Screenshot Library"?" active":"")} aria-current={mediaPage==="Website Screenshot Library"?"page":undefined} onClick={()=>setMediaPage("Website Screenshot Library")}><span className="hq-side-icon" aria-hidden="true">▧</span><span>Website Screenshot Library</span></button>
     <p>Reference collections and screenshots, stored privately in Supabase.</p>
+   </div>:activeApp==="POD Magic"?<div className="hq-app-context-content">
+    <div className="label">POD Magic</div>
+    <a className="hq-nav-page active" href="https://podmagic.app" target="_blank" rel="noopener noreferrer"><span className="hq-side-icon" aria-hidden="true">✦</span><span>Open POD Magic ↗</span></a>
+    <p>Design studio, merchandise projects and account management at podmagic.app.</p>
    </div>:<div className="hq-app-context-content">
     <div className="label">Workspace</div>
     <button type="button" className="hq-nav-page active" aria-current="page">{activeApp} Overview</button>
@@ -299,6 +303,7 @@ export default function Dashboard({email,userId,signOutAction}:{email?:string;us
   </aside>}
   <main className="hq-dual-main" onClick={()=>{if(accountMenuOpen)setAccountMenuOpen(false);}}>
    {activeApp==="Media Magic"?(mediaPage==="Website Screenshot Library"?<WebsiteScreenshotLibrary userId={userId}/>:<AppScreenshotLibrary userId={userId}/>)
+    :activeApp==="POD Magic"?<section className="hq-source-page"><div className="eyebrow">POD MAGIC WORKSPACE</div><h1>POD Magic™</h1><div className="hq-source-panel"><h2>Your merchandise design studio</h2><p>POD Magic operates on its own website, with login, saved merchandise concepts and a design project workspace.</p><a href="https://podmagic.app" target="_blank" rel="noopener noreferrer">Open POD Magic ↗</a></div></section>
     :activeApp!=="MyFounderHQ"?<section className="hq-source-page">
      <div className="eyebrow">APPLICATION WORKSPACE</div><h1>{activeApp}</h1>
      <div className="hq-source-panel"><h2>Workspace not configured</h2><p>This application has been added to your launcher. Its pages, integrations, and execution workflows have not been connected yet.</p></div>
