@@ -39,6 +39,8 @@ export default function Home(){
  const [notice,setNotice]=useState("");
  const [filter,setFilter]=useState("");
  const [sidebarOpen,setSidebarOpen]=useState(true);
+ const [rightSidebarOpen,setRightSidebarOpen]=useState(true);
+ const [accountMenuOpen,setAccountMenuOpen]=useState(false);
 
  useEffect(()=>{if(!db){setAuthLoading(false);return;}let active=true;
   void db.auth.getUser().then(({data})=>{if(active){setUser(data.user);setAuthLoading(false);}});
@@ -95,13 +97,37 @@ export default function Home(){
  if(!user)return <div className="welcome-shell"><section className="welcome-brand"><div className="brand"><span className="brand-mark">✦</span>POD MAGIC<span className="trademark">™</span></div><div className="welcome-copy"><span className="eyebrow">MERCHANDISE DESIGN OPERATING SYSTEM</span><h1>Your next collection starts here.</h1><p>Create original concepts, manage your design pipeline, and prepare your merchandise projects for Canva and print-on-demand fulfillment.</p><div className="welcome-pills"><span>Design studio</span><span>Merch collections</span><span>Production workflow</span></div></div><p className="welcome-footer">A Magic™ product · Connected to MyFounderHQ</p></section>
  <section className="auth-panel"><div className="auth-box"><div className="auth-kicker">WELCOME TO POD MAGIC</div><h2>{authMode==="login"?"Sign in to your studio":authMode==="signup"?"Create your account":"Reset your password"}</h2><p>Access your private design workspace.</p><form onSubmit={authenticate}><label>Email<input required type="email" autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com"/></label>{authMode!=="reset"&&<label>Password<input required minLength={6} type="password" autoComplete={authMode==="signup"?"new-password":"current-password"} value={password} onChange={e=>setPassword(e.target.value)} placeholder="Enter password"/></label>}<button disabled={authBusy} className="primary-button">{authBusy?"Working…":authMode==="login"?"Sign in":authMode==="signup"?"Create account":"Email reset instructions"}</button></form>{authMessage&&<p className="form-message" role="status">{authMessage}</p>}<div className="auth-links"><button type="button" onClick={()=>{setAuthMode(authMode==="login"?"signup":"login");setAuthMessage("");}}>{authMode==="login"?"Create an account":"Back to sign in"}</button>{authMode==="login"&&<button type="button" onClick={()=>{setAuthMode("reset");setAuthMessage("");}}>Forgot password?</button>}</div><p className="auth-foot">POD Magic currently uses the same Supabase authentication project as MyFounderHQ, so existing founder credentials can be used.</p></div></section>
  </div>;
- return <div className={"studio-shell"+(!sidebarOpen?" sidebar-closed":"")}>
-  <aside className="studio-side"><div className="side-head"><div className="brand"><span className="brand-mark">✦</span><span className="brand-text">POD MAGIC™</span></div><button title="Toggle sidebar" aria-label="Toggle sidebar" onClick={()=>setSidebarOpen(v=>!v)}>☰</button></div>
-   <div className="nav-items">{([["dashboard","▦","Overview"],["designs","▤","My designs"],["editor","✚","New design"],["billing","◇","Subscription"],["settings","⚙","Account"]] as const).map(([id,icon,label])=><button key={id} title={label} className={screen===id?"selected":""} onClick={()=>id==="editor"?begin():go(id)}><span>{icon}</span><b>{label}</b></button>)}</div>
-   <div className="side-foot"><a href="https://myfounderhq.com" target="_blank" rel="noopener noreferrer" title="Go to MyFounderHQ">↗ <span>MyFounderHQ</span></a><small>{user.email}</small><button onClick={()=>void signOut()}>⇥ <span>Log out</span></button></div>
-  </aside>
+ return <div className="pod-triple-shell">
+  <nav className="pod-icon-rail" aria-label="Application launcher">
+   <button type="button" className="pod-rail-icon pod-menu-icon" onClick={()=>setSidebarOpen(open=>!open)} aria-expanded={sidebarOpen} title={sidebarOpen?"Hide left menu":"Show left menu"} aria-label={sidebarOpen?"Hide left menu":"Show left menu"}>☷</button>
+   <div className="pod-rail-separator"/>
+   <a className="pod-rail-icon pod-hq-icon" href="https://myfounderhq.com" title="Open MyFounderHQ" aria-label="Open MyFounderHQ">M</a>
+   <button type="button" className="pod-rail-icon pod-active-icon" aria-current="page" title="POD Magic" aria-label="POD Magic">✦</button>
+   <div className="pod-rail-end">
+    <button type="button" className="pod-rail-icon pod-account-icon" onClick={()=>{setSidebarOpen(true);setAccountMenuOpen(open=>!open);}} aria-label="Open account menu" aria-expanded={accountMenuOpen} title="Account">⚙</button>
+   </div>
+  </nav>
+  {sidebarOpen&&<aside className="pod-left-context" aria-label="POD Magic navigation">
+   <div className="pod-context-head">
+    <div className="pod-context-identity"><span className="pod-context-mark">✦</span><strong>POD Magic™</strong></div>
+    <button type="button" className="pod-collapse-button" onClick={()=>setSidebarOpen(false)} aria-label="Collapse left sidebar" title="Collapse left sidebar">‹</button>
+   </div>
+   <div className="pod-context-empty" aria-label="POD Magic navigation items"/>
+   <div className="pod-context-footer">
+    {accountMenuOpen&&<div className="pod-account-options" role="group" aria-label="Account options">
+     <div className="pod-account-identity">{user.email}</div>
+     <a href="https://myfounderhq.com" target="_blank" rel="noopener noreferrer">Open MyFounderHQ ↗</a>
+     <button type="button" onClick={()=>void signOut()}>Log out</button>
+    </div>}
+    <button type="button" className="pod-user-trigger" onClick={()=>setAccountMenuOpen(v=>!v)} aria-expanded={accountMenuOpen}>
+     <span className="pod-user-avatar">{(user.email||"P")[0].toUpperCase()}</span>
+     <span className="pod-user-info"><strong>{user.email?.split("@")[0]||"Account"}</strong><small>{user.email}</small></span>
+     <span aria-hidden="true">⋯</span>
+    </button>
+   </div>
+  </aside>}
   <main className="studio-main">
-   <header className="topbar"><button className="menu-toggle" title="Toggle menu" onClick={()=>setSidebarOpen(v=>!v)}>☰</button><span>WORKSPACE / {screen.toUpperCase()}</span><div className="topbar-right"><span className="status-dot"/> Studio access <strong>{user.email?.split("@")[0]}</strong></div></header>
+   <header className="topbar"><span>WORKSPACE / {screen.toUpperCase()}</span><div className="topbar-right"><span className="status-dot"/> Studio access <strong>{user.email?.split("@")[0]}</strong><button type="button" className="pod-right-toggle" onClick={()=>setRightSidebarOpen(open=>!open)} title={rightSidebarOpen?"Hide right sidebar":"Show right sidebar"} aria-label={rightSidebarOpen?"Hide right sidebar":"Show right sidebar"} aria-expanded={rightSidebarOpen}>◧</button></div></header>
    <div className="page-content">
     {error&&<div className="alert error" role="alert">{error}</div>}
     {notice&&<div className="alert success" role="status">{notice}</div>}
@@ -120,5 +146,13 @@ export default function Home(){
     {screen==="settings"&&<><span className="eyebrow">MY ACCOUNT</span><h1>Account</h1><section className="panel account-panel"><h2>Signed-in account</h2><p><strong>Email:</strong> {user.email}</p><p><strong>Account ID:</strong> <code>{user.id}</code></p><p>POD Magic uses the same authentication backend as MyFounderHQ. Your design projects remain private to your account.</p><button className="outline-button" onClick={()=>void signOut()}>Sign out</button></section></>}
    </div>
   </main>
+  {rightSidebarOpen&&<aside className="pod-right-context" aria-label="Contextual workspace sidebar">
+   <div className="pod-right-head"><strong>{screen==="dashboard"?"Workspace context":screen==="designs"?"Designs context":screen==="editor"?"Design context":screen==="billing"?"Subscription context":"Account context"}</strong><button className="pod-collapse-button" type="button" onClick={()=>setRightSidebarOpen(false)} aria-label="Collapse right sidebar" title="Collapse right sidebar">›</button></div>
+   <div className="pod-right-body">
+    {screen==="dashboard"&&<div className="pod-context-insight"><span>WORKSPACE</span><p>{designs.length} saved designs</p><p>{approved} approved or published</p></div>}
+    {screen==="designs"&&<div className="pod-context-insight"><span>DESIGN LIBRARY</span><p>{filtered.length} designs displayed</p></div>}
+    {screen==="editor"&&<div className="pod-context-insight"><span>CURRENT DESIGN</span><p>{editor.title}</p><p>{editor.product_type} · {editor.status}</p></div>}
+   </div>
+  </aside>}
  </div>;
 }
