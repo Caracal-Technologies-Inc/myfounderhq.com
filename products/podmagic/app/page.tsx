@@ -38,7 +38,14 @@ export default function Home(){
  const [error,setError]=useState("");
  const [notice,setNotice]=useState("");
  const [filter,setFilter]=useState("");
- const [sidebarOpen,setSidebarOpen]=useState(true);
+ const [sidebarOpen,setSidebarOpen]=useState(false);
+ const [sidebarPinned,setSidebarPinned]=useState(false);
+ const sidebarVisible=sidebarOpen||sidebarPinned;
+ const closeSidebarOnLeave=(event:React.MouseEvent<HTMLElement>)=>{
+  const next=event.relatedTarget;
+  if(next instanceof Element&&next.closest(".pod-icon-rail, .pod-left-context"))return;
+  if(!sidebarPinned)setSidebarOpen(false);
+ };
  const [rightSidebarOpen,setRightSidebarOpen]=useState(true);
  const [profileOpen,setProfileOpen]=useState(false);
  const [settingsOpen,setSettingsOpen]=useState(false);
@@ -100,8 +107,8 @@ export default function Home(){
  <section className="auth-panel"><div className="auth-box"><div className="auth-kicker">WELCOME TO POD MAGIC</div><h2>{authMode==="login"?"Sign in to your studio":authMode==="signup"?"Create your account":"Reset your password"}</h2><p>Access your private design workspace.</p><form onSubmit={authenticate}><label>Email<input required type="email" autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com"/></label>{authMode!=="reset"&&<label>Password<input required minLength={6} type="password" autoComplete={authMode==="signup"?"new-password":"current-password"} value={password} onChange={e=>setPassword(e.target.value)} placeholder="Enter password"/></label>}<button disabled={authBusy} className="primary-button">{authBusy?"Working…":authMode==="login"?"Sign in":authMode==="signup"?"Create account":"Email reset instructions"}</button></form>{authMessage&&<p className="form-message" role="status">{authMessage}</p>}<div className="auth-links"><button type="button" onClick={()=>{setAuthMode(authMode==="login"?"signup":"login");setAuthMessage("");}}>{authMode==="login"?"Create an account":"Back to sign in"}</button>{authMode==="login"&&<button type="button" onClick={()=>{setAuthMode("reset");setAuthMessage("");}}>Forgot password?</button>}</div><p className="auth-foot">POD Magic currently uses the same Supabase authentication project as MyFounderHQ, so existing founder credentials can be used.</p></div></section>
  </div>;
  return <div className="pod-triple-shell">
-  <nav className="pod-icon-rail" aria-label="Application launcher">
-   <button type="button" className="pod-rail-icon pod-menu-icon" onClick={()=>setSidebarOpen(open=>!open)} aria-expanded={sidebarOpen} title={sidebarOpen?"Hide left menu":"Show left menu"} aria-label={sidebarOpen?"Hide left menu":"Show left menu"}><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7"/><path d="M5 9v12h14V9"/><path d="M9 21v-7h6v7"/></svg></button>
+  <nav className="pod-icon-rail" aria-label="Application launcher" onMouseEnter={()=>setSidebarOpen(true)} onMouseLeave={closeSidebarOnLeave}>
+   <button type="button" className="pod-rail-icon pod-menu-icon" onClick={()=>setSidebarOpen(open=>sidebarPinned?true:!open)} aria-expanded={sidebarVisible} title="Home · Show navigation" aria-label="Home · Show navigation"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7"/><path d="M5 9v12h14V9"/><path d="M9 21v-7h6v7"/></svg></button>
    <div className="pod-rail-separator"/>
    <div className="pod-rail-end">
     <button type="button" className="pod-profile-circle" title="Account menu" aria-label="Open account menu" aria-expanded={profileOpen} onClick={()=>setProfileOpen(open=>!open)}>
@@ -109,10 +116,10 @@ export default function Home(){
     </button>
    </div>
   </nav>
-  {sidebarOpen&&<aside className="pod-left-context" aria-label="POD Magic navigation">
+  {sidebarVisible&&<aside className={"pod-left-context"+(!sidebarPinned?" pod-context-floating":"")} aria-label="POD Magic navigation" onMouseEnter={()=>setSidebarOpen(true)} onMouseLeave={closeSidebarOnLeave}>
    <div className="pod-context-head">
     <div className="pod-context-identity"/>
-    <button type="button" className="pod-collapse-button" onClick={()=>setSidebarOpen(false)} aria-label="Collapse left sidebar" title="Collapse left sidebar">‹</button>
+    <button type="button" className={"pod-pin-button"+(sidebarPinned?" pinned":"")} onClick={()=>{setSidebarPinned(pinned=>!pinned);setSidebarOpen(true);}} aria-label={sidebarPinned?"Unpin left sidebar":"Pin left sidebar"} aria-pressed={sidebarPinned} title={sidebarPinned?"Unpin left sidebar":"Pin left sidebar"}><svg width="18" height="18" viewBox="0 0 24 24" fill={sidebarPinned?"currentColor":"none"} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m16 3 5 5-4 1-3 5 2 2-3 3-4-4-5 5-1-1 5-5-4-4 3-3 2 2 5-3 2-4Z"/></svg></button>
    </div>
    <div className="pod-context-empty" aria-label="POD Magic navigation items"/>
   </aside>}
