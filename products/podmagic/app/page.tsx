@@ -40,7 +40,7 @@ export default function Home(){
  const [filter,setFilter]=useState("");
  const [sidebarOpen,setSidebarOpen]=useState(true);
  const [rightSidebarOpen,setRightSidebarOpen]=useState(true);
- const [accountMenuOpen,setAccountMenuOpen]=useState(false);
+
 
  useEffect(()=>{if(!db){setAuthLoading(false);return;}let active=true;
   void db.auth.getUser().then(({data})=>{if(active){setUser(data.user);setAuthLoading(false);}});
@@ -101,31 +101,16 @@ export default function Home(){
   <nav className="pod-icon-rail" aria-label="Application launcher">
    <button type="button" className="pod-rail-icon pod-menu-icon" onClick={()=>setSidebarOpen(open=>!open)} aria-expanded={sidebarOpen} title={sidebarOpen?"Hide left menu":"Show left menu"} aria-label={sidebarOpen?"Hide left menu":"Show left menu"}>☷</button>
    <div className="pod-rail-separator"/>
-   <button type="button" className="pod-rail-icon pod-active-icon" aria-current="page" title="POD Magic" aria-label="POD Magic">✦</button>
-   <div className="pod-rail-end">
-    <button type="button" className="pod-rail-icon pod-account-icon" onClick={()=>{setSidebarOpen(true);setAccountMenuOpen(open=>!open);}} aria-label="Open account menu" aria-expanded={accountMenuOpen} title="Account">⚙</button>
-   </div>
   </nav>
   {sidebarOpen&&<aside className="pod-left-context" aria-label="POD Magic navigation">
    <div className="pod-context-head">
-    <div className="pod-context-identity"><span className="pod-context-mark">✦</span><strong>POD Magic™</strong></div>
+    <div className="pod-context-identity"/>
     <button type="button" className="pod-collapse-button" onClick={()=>setSidebarOpen(false)} aria-label="Collapse left sidebar" title="Collapse left sidebar">‹</button>
    </div>
    <div className="pod-context-empty" aria-label="POD Magic navigation items"/>
-   <div className="pod-context-footer">
-    {accountMenuOpen&&<div className="pod-account-options" role="group" aria-label="Account options">
-     <div className="pod-account-identity">{user.email}</div>
-     <button type="button" onClick={()=>void signOut()}>Log out</button>
-    </div>}
-    <button type="button" className="pod-user-trigger" onClick={()=>setAccountMenuOpen(v=>!v)} aria-expanded={accountMenuOpen}>
-     <span className="pod-user-avatar">{(user.email||"P")[0].toUpperCase()}</span>
-     <span className="pod-user-info"><strong>{user.email?.split("@")[0]||"Account"}</strong><small>{user.email}</small></span>
-     <span aria-hidden="true">⋯</span>
-    </button>
-   </div>
   </aside>}
   <main className="studio-main">
-   <header className="topbar"><span>POD MAGIC™</span><div className="topbar-right"><span className="status-dot"/> Studio access <strong>{user.email?.split("@")[0]}</strong><button type="button" className="pod-right-toggle" onClick={()=>setRightSidebarOpen(open=>!open)} title={rightSidebarOpen?"Hide right sidebar":"Show right sidebar"} aria-label={rightSidebarOpen?"Hide right sidebar":"Show right sidebar"} aria-expanded={rightSidebarOpen}>◧</button></div></header>
+   <header className="topbar pod-empty-header"><span/><div className="topbar-right"><button type="button" className="pod-right-toggle" onClick={()=>setRightSidebarOpen(open=>!open)} title={rightSidebarOpen?"Hide right sidebar":"Show right sidebar"} aria-label={rightSidebarOpen?"Hide right sidebar":"Show right sidebar"} aria-expanded={rightSidebarOpen}>◧</button></div></header>
    <div className="pod-blank-workspace" aria-label="Empty POD Magic workspace"/>
   </main>
   {rightSidebarOpen&&<aside className="pod-right-context" aria-label="Empty contextual sidebar">
