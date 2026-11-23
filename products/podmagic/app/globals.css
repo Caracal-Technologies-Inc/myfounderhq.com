@@ -49,3 +49,31 @@
 .pod-triple-shell .pod-blank-workspace{flex:1 1 auto;min-height:0;width:100%;background:var(--bg)}
 .pod-triple-shell>.studio-main{background:var(--bg)}
 .pod-triple-shell .pod-right-body{flex:1 1 auto}
+
+/* Bottom-left settings and account, like the MyFounderHQ / ChatGPT launcher. */
+.pod-triple-shell .pod-rail-end{margin-top:auto;width:100%;display:flex;flex-direction:column;align-items:center;gap:8px;padding-bottom:8px}
+.pod-settings-icon{font-size:19px}
+.pod-profile-circle{display:grid;place-items:center;flex:0 0 36px;width:36px;height:36px;border:0;border-radius:50%;background:#783cd7;color:#fff;font-size:14px;font-weight:850;box-shadow:0 0 0 2px #eee9f9}
+.pod-profile-circle:hover,.pod-profile-circle[aria-expanded=true]{box-shadow:0 0 0 3px #d7c5fb}
+.pod-profile-dismiss{position:fixed;inset:0;z-index:30;background:transparent;border:0;cursor:default}
+.pod-profile-popover{position:fixed;bottom:15px;left:65px;z-index:31;width:min(285px,calc(100vw - 78px));padding:8px;background:#fff;border:1px solid var(--line);border-radius:13px;box-shadow:0 12px 45px rgba(27,16,50,.16)}
+.pod-profile-menu-head{display:flex;gap:10px;align-items:center;padding:10px 9px 13px;min-width:0}
+.pod-profile-menu-avatar{width:36px;height:36px;flex:0 0 36px;border-radius:50%;background:var(--purple);color:#fff;display:grid;place-items:center;font-size:14px;font-weight:850}
+.pod-profile-menu-head>span:last-child{display:flex;flex-direction:column;min-width:0;gap:3px}
+.pod-profile-menu-head strong,.pod-profile-menu-head small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
+.pod-profile-menu-head small{color:var(--muted);font-size:10px}
+.pod-profile-menu-divider{height:1px;background:var(--line);margin:3px 2px 7px}
+.pod-profile-popover>button{display:flex;align-items:center;gap:12px;width:100%;padding:12px;border:0;border-radius:8px;background:transparent;color:var(--text);font-size:13px;text-align:left}
+.pod-profile-popover>button:hover{background:var(--soft)}
+.pod-profile-popover>button span{font-size:17px;width:18px;text-align:center;color:var(--muted)}
+.pod-settings-backdrop{position:fixed;inset:0;z-index:40;background:rgba(20,12,37,.44);display:flex;align-items:center;justify-content:center;padding:18px}
+.pod-settings-dialog{width:min(100%,450px);max-height:90dvh;overflow-y:auto;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:23px;box-shadow:0 20px 60px rgba(0,0,0,.18)}
+.pod-settings-dialog-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:25px}
+.pod-settings-dialog-head h2{margin:0;font-size:24px}
+.pod-settings-dialog-head button{border:0;background:transparent;color:var(--muted);font-size:24px;padding:4px}
+.pod-settings-dialog h3{font-size:13px;margin:0 0 13px}
+.pod-setting-row{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:13px 0;border-top:1px solid var(--line);font-size:12px}
+.pod-setting-row span{color:var(--muted)}
+.pod-setting-row strong{max-width:70%;text-align:right;overflow-wrap:anywhere;font-weight:650}
+.pod-settings-dialog p{font-size:12px}
+.pod-signout-action{margin-top:14px;border:1px solid var(--line);border-radius:8px;padding:10px 14px;background:var(--soft);color:var(--purple);font-size:12px;font-weight:800}
