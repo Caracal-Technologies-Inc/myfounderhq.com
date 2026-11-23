@@ -108,7 +108,7 @@ export default function Home(){
  </div>;
  return <div className="pod-triple-shell">
   <nav className="pod-icon-rail" aria-label="Application launcher" onMouseEnter={()=>setSidebarOpen(true)} onMouseLeave={closeSidebarOnLeave}>
-   <button type="button" className="pod-rail-icon pod-menu-icon" onClick={()=>setSidebarOpen(open=>sidebarPinned?true:!open)} aria-expanded={sidebarVisible} title="Home · Show navigation" aria-label="Home · Show navigation"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7"/><path d="M5 9v12h14V9"/><path d="M9 21v-7h6v7"/></svg></button>
+   <button type="button" className="pod-rail-icon pod-menu-icon" onClick={()=>setSidebarOpen(true)} aria-expanded={sidebarVisible} title="Home · Show navigation" aria-label="Home · Show navigation"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7"/><path d="M5 9v12h14V9"/><path d="M9 21v-7h6v7"/></svg></button>
    <div className="pod-rail-separator"/>
    <div className="pod-rail-end">
     <button type="button" className="pod-profile-circle" title="Account menu" aria-label="Open account menu" aria-expanded={profileOpen} onClick={()=>setProfileOpen(open=>!open)}>
